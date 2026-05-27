@@ -1,0 +1,14 @@
+# *
+User-agent: *
+Allow: /
+
+# *
+User-agent: *
+Disallow: /get-access
+Disallow: /admin
+
+# Host
+Host: https://enhancelabs.ai
+
+# Sitemaps
+Sitemap: https://enhancelabs.ai/sitemap.xml

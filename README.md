@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EnhanceLabs
 
-## Getting Started
+AI-powered supplement formulation platform for brands and agencies. Evidence-backed formulations in minutes — RAG-powered ingredient research, FDA compliance checking, and direct manufacturer connections.
 
-First, run the development server:
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-org/enhancelabs&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SITE_URL)
+
+## Stack
+
+- **Next.js 16** (App Router, Turbopack)
+- **Tailwind CSS v4**
+- **shadcn/ui** (via `@base-ui/react`)
+- **Supabase** (waitlist storage)
+- **Framer Motion** (scroll animations)
+- **next-sitemap** (sitemap + robots.txt)
+
+## Local Setup
 
 ```bash
+# 1. Clone and install
+git clone https://github.com/your-org/enhancelabs.git
+cd enhancelabs
+npm install
+
+# 2. Environment variables
+cp .env.local.example .env.local
+# Fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# 3. Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run the following SQL in your Supabase project's SQL editor (Dashboard → SQL Editor):
 
-## Learn More
+```sql
+CREATE TABLE IF NOT EXISTS waitlist (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at  TIMESTAMPTZ NOT NULL    DEFAULT now(),
+  full_name   TEXT        NOT NULL,
+  email       TEXT        NOT NULL UNIQUE,
+  company     TEXT        NOT NULL,
+  role        TEXT        NOT NULL,
+  brand_count TEXT        NOT NULL,
+  source      TEXT        NOT NULL
+);
 
-To learn more about Next.js, take a look at the following resources:
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+CREATE POLICY "Public insert on waitlist"
+  ON waitlist
+  FOR INSERT
+  WITH CHECK (true);
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Then copy your **Project URL** and **anon public key** from Dashboard → Project Settings → API into `.env.local`.
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `NEXT_PUBLIC_SITE_URL` | Canonical site URL (e.g. `https://enhancelabs.ai`) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Build & Deploy
+
+```bash
+npm run build    # builds Next.js + generates sitemap.xml + robots.txt via postbuild
+npm run start    # serves production build locally
+```
+
+### Deploy to Vercel
+
+1. Push to GitHub
+2. Import project in [vercel.com/new](https://vercel.com/new)
+3. Add the three environment variables in the Vercel dashboard
+4. Vercel will auto-detect Next.js and deploy
+
+The `vercel.json` targets region `iad1` (US East) for lowest latency.
+
+## Pages
+
+| Route | Description |
+|---|---|
+| `/` | Homepage — hero, features, how it works, testimonials, pricing preview, CTA |
+| `/features` | Full feature breakdown |
+| `/pricing` | Pricing tiers |
+| `/for-agencies` | Agency-focused landing |
+| `/get-access` | Waitlist signup (noindex) |
+
+## Known Issue
+
+`app/(auth)/get-access/page.tsx` is a stub that conflicts with `app/get-access/page.tsx`. Delete it to silence the Turbopack warning:
+
+```bash
+rm 'app/(auth)/get-access/page.tsx'
+```
