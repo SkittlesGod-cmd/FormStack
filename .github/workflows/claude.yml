@@ -1,7 +1,9 @@
 name: Claude Code Review
 on:
+  push:
+    branches: [ main, master ]
   pull_request:
-    types: [opened, synchronize] # Automatically triggers when a PR is created or updated
+    types: [opened, synchronize]
 
 jobs:
   claude-review:
