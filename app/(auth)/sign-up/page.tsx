@@ -83,7 +83,7 @@ export default function SignUpPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -107,7 +107,7 @@ export default function SignUpPage() {
             full_name: data.full_name,
             company: data.company,
           },
-          emailRedirectTo: `${window.location.origin}/confirm`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
