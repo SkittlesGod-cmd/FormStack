@@ -1,19 +1,14 @@
 name: Claude Code Review
 on:
   pull_request:
-    types: [opened, synchronize] # Uses supported PR events
+    types: [opened, synchronize]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Resolves the Node 20 deprecation warning
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   claude-review:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      id-token: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
