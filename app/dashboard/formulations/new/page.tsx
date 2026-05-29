@@ -37,6 +37,7 @@ type Phase =
   | "formulation_review"
   | "refining"
   | "compliance_running"
+  | "compliance_refining"
   | "complete";
 
 interface IntakeData {
@@ -87,6 +88,7 @@ const PHASE_LABELS: Record<Phase, string> = {
   formulation_review: "Formulation",
   refining: "Formulation",
   compliance_running: "Compliance",
+  compliance_refining: "Compliance",
   complete: "Complete",
 };
 
@@ -108,7 +110,7 @@ function stepIndex(phase: Phase): number {
   if (phase === "intake") return 0;
   if (phase === "researching" || phase === "research_review") return 1;
   if (phase === "formulating" || phase === "formulation_review" || phase === "refining") return 2;
-  if (phase === "compliance_running") return 3;
+  if (phase === "compliance_running" || phase === "compliance_refining") return 3;
   return 4;
 }
 
@@ -155,7 +157,7 @@ function PhaseIndicator({ phase }: { phase: Phase }) {
                 "bg-gray-100 text-gray-400"
               )}>
                 {done ? <Check className="size-3" /> : (
-                  active && (phase === "researching" || phase === "formulating" || phase === "compliance_running" || phase === "refining")
+                  active && (phase === "researching" || phase === "formulating" || phase === "compliance_running" || phase === "compliance_refining" || phase === "refining")
                     ? <Loader2 className="size-3 animate-spin" />
                     : i + 1
                 )}
@@ -291,7 +293,11 @@ export default function NewFormulationPage() {
   }
 
   // ── Stream from builder API ──
-  async function stream(phaseKey: "research" | "formulate" | "refine", feedback?: string): Promise<string> {
+  async function stream(
+    phaseKey: "research" | "formulate" | "refine" | "compliance_refine",
+    feedback?: string,
+    complianceResult?: string,
+  ): Promise<string> {
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     setStreaming(true);
@@ -314,6 +320,7 @@ export default function NewFormulationPage() {
             research: researchContent,
             formulation_json: formulationContent,
             feedback,
+            compliance_result: complianceResult,
           },
         }),
         signal: abortRef.current.signal,
@@ -407,7 +414,7 @@ export default function NewFormulationPage() {
     }
   }
 
-  async function runComplianceForId(id: string) {
+  async function runComplianceForId(id: string, attempt = 0) {
     try {
       const res = await fetch("/api/ai/compliance", {
         method: "POST",
@@ -416,6 +423,33 @@ export default function NewFormulationPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Compliance failed");
+
+      // Auto-fix loop: if score < 75 and we haven't already tried twice, refine
+      if (typeof data.score === "number" && data.score < 75 && attempt < 2) {
+        setComplianceResult(data);
+        setPhase("compliance_refining");
+
+        const complianceSummary = JSON.stringify({
+          score: data.score,
+          issues: data.issues,
+          recommendations: data.recommendations,
+          risky_claims: data.risky_claims,
+          auto_fix_guidance: data.auto_fix_guidance,
+        });
+
+        const refined = await stream("compliance_refine", undefined, complianceSummary);
+        setFormulationContent(refined);
+        const parsed = parseFormulationJson(refined);
+        if (parsed) {
+          setParsedFormulation(parsed);
+          await updateFormulation(id, parsed, "in_review");
+        }
+
+        setPhase("compliance_running");
+        await runComplianceForId(id, attempt + 1);
+        return;
+      }
+
       setComplianceResult(data);
       await updateStatus(id, "compliant");
       setPhase("complete");
@@ -826,6 +860,57 @@ export default function NewFormulationPage() {
                   <Loader2 className="size-3.5 animate-spin" />
                   Reviewing against FDA DSHEA guidelines…
                 </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── COMPLIANCE REFINING ──────────────────────────────────────────── */}
+        {phase === "compliance_refining" && (
+          <motion.div
+            key="compliance_refining"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            className="space-y-4"
+          >
+            <div className="rounded-xl border border-amber-100 bg-amber-50 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <div className="flex items-start gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-100">
+                  <ShieldCheck className="size-4.5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-amber-900">
+                    Compliance score below threshold — auto-fixing
+                  </p>
+                  <p className="mt-1 text-[12px] text-amber-700">
+                    Score: <span className="font-bold">{complianceResult?.score ?? "—"}/100</span>
+                    {" "}— The AI identified compliance issues and is automatically revising the formulation to meet FDA guidelines.
+                  </p>
+                  {complianceResult?.issues?.filter(i => i.severity === "high").length ? (
+                    <ul className="mt-2 space-y-1">
+                      {complianceResult.issues.filter(i => i.severity === "high").slice(0, 3).map((issue, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5 text-[11px] text-amber-700">
+                          <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-amber-500" />
+                          <span><span className="font-semibold">{issue.issue}</span>{issue.ingredient ? ` — ${issue.ingredient}` : ""}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 border-b border-black/[0.05] px-5 py-3.5">
+                <Loader2 className="size-3.5 animate-spin text-brand" />
+                <p className="text-[13px] font-semibold text-gray-900">Rewriting formulation for compliance…</p>
+              </div>
+              <div className="px-5 py-5">
+                {streamContent ? (
+                  <StreamingMarkdown content={streamContent} />
+                ) : (
+                  <p className="text-[12px] text-gray-400">Applying regulatory corrections…</p>
+                )}
               </div>
             </div>
           </motion.div>
