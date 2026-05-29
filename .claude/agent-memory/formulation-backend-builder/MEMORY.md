@@ -1,0 +1,4 @@
+- [Project stack](project-stack.md) — Next 16.2.6, React 19, Supabase SSR, Tailwind v4, base-ui, sonner
+- [Supabase clients](supabase-clients.md) — server (await createClient) and browser client locations and patterns
+- [Dashboard UI patterns](dashboard-ui-patterns.md) — brand color, gray-50 backdrop, rounded-2xl cards, status palette
+- [Next 16 dynamic params](next16-dynamic-params.md) — params/searchParams are Promises and must be awaited

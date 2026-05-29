@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ChevronLeft,
+  Check,
+  Copy,
   Download,
+  Factory,
+  FileText,
+  History,
+  Link2,
   Loader2,
   Pencil,
   Plus,
@@ -27,7 +33,14 @@ import {
 } from "@/lib/formulations/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "research" | "compliance" | "edit";
+type Tab = "overview" | "research" | "compliance" | "handoff" | "edit";
+
+interface FormulationVersionRow {
+  id: string;
+  version: number;
+  snapshot: Formulation;
+  created_at: string;
+}
 
 function StatusBadge({ status }: { status: FormulationStatus }) {
   return (
@@ -466,6 +479,395 @@ function ComplianceTab({ formulation, onScoreUpdate }: { formulation: Formulatio
   );
 }
 
+// ─── Handoff Tab ──────────────────────────────────────────────────────────────
+const CERTIFICATIONS = ["cGMP", "NSF Certified", "Informed Sport", "Kosher", "Halal", "Organic"];
+const TIMELINES = [
+  "ASAP (< 4 weeks)",
+  "3 months",
+  "6 months",
+  "12 months",
+  "Flexible",
+];
+
+interface RFQState {
+  moq: string;
+  targetCost: string;
+  timeline: string;
+  certifications: string[];
+  packaging: string;
+  requirements: string;
+}
+
+function HandoffTab({ formulation }: { formulation: Formulation }) {
+  const [rfq, setRfq] = useState<RFQState>({
+    moq: "",
+    targetCost: "",
+    timeline: TIMELINES[1],
+    certifications: [],
+    packaging: "",
+    requirements: "",
+  });
+
+  const [streaming, setStreaming] = useState(false);
+  const [brief, setBrief] = useState("");
+  const [briefError, setBriefError] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function toggleCert(cert: string) {
+    setRfq(r => ({
+      ...r,
+      certifications: r.certifications.includes(cert)
+        ? r.certifications.filter(c => c !== cert)
+        : [...r.certifications, cert],
+    }));
+  }
+
+  async function generateBrief() {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+    setStreaming(true);
+    setBrief("");
+    setBriefError(null);
+    setStarted(true);
+
+    try {
+      const res = await fetch("/api/ai/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `Manufacturer brief: ${formulation.name}`,
+          type: "formulation",
+          context: {
+            name: formulation.name,
+            description: formulation.description,
+            ingredients: formulation.ingredients,
+            target_dose: formulation.target_dose,
+            serving_size: formulation.serving_size,
+            capsule_size: formulation.capsule_size,
+            capsules_per_serving: formulation.capsules_per_serving,
+            product_type: formulation.product_type,
+            notes: [
+              formulation.notes,
+              "",
+              "--- RFQ Requirements ---",
+              rfq.moq && `MOQ: ${rfq.moq}`,
+              rfq.targetCost && `Target cost per unit: ${rfq.targetCost}`,
+              rfq.timeline && `Timeline: ${rfq.timeline}`,
+              rfq.certifications.length > 0 && `Required certifications: ${rfq.certifications.join(", ")}`,
+              rfq.packaging && `Packaging: ${rfq.packaging}`,
+              rfq.requirements && `Special requirements: ${rfq.requirements}`,
+            ].filter(Boolean).join("\n"),
+          },
+        }),
+        signal: abortRef.current.signal,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Failed (${res.status})`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        setBrief(accumulated);
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") setBriefError(e.message);
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  async function generateShareLink() {
+    setShareLoading(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/formulations/${formulation.id}/share`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to create share link");
+      setShareToken(json.token);
+    } catch (e: any) {
+      setShareError(e.message);
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  const shareUrl = shareToken
+    ? (typeof window !== "undefined" ? `${window.location.origin}/f/${shareToken}` : `/f/${shareToken}`)
+    : "";
+
+  function copyShare() {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  const inputClass = "h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-[13px] outline-none transition placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/15";
+  const labelClass = "text-[11px] font-semibold uppercase tracking-widest text-gray-400";
+
+  return (
+    <div className="space-y-4">
+      {/* RFQ */}
+      <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="border-b border-black/[0.05] px-5 py-3.5">
+          <h2 className="text-[13px] font-semibold text-gray-900">Request for Quote</h2>
+          <p className="mt-0.5 text-[11px] text-gray-400">Provide manufacturing constraints to include in the brief.</p>
+        </div>
+        <div className="grid gap-4 p-5 md:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>MOQ</label>
+            <input
+              type="text"
+              value={rfq.moq}
+              onChange={e => setRfq(r => ({ ...r, moq: e.target.value }))}
+              placeholder="e.g. 1,000 units"
+              className={inputClass}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>Target cost / unit</label>
+            <input
+              type="text"
+              value={rfq.targetCost}
+              onChange={e => setRfq(r => ({ ...r, targetCost: e.target.value }))}
+              placeholder="e.g. $2.50/unit"
+              className={inputClass}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>Timeline</label>
+            <select
+              value={rfq.timeline}
+              onChange={e => setRfq(r => ({ ...r, timeline: e.target.value }))}
+              className={inputClass}
+            >
+              {TIMELINES.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>Packaging format</label>
+            <input
+              type="text"
+              value={rfq.packaging}
+              onChange={e => setRfq(r => ({ ...r, packaging: e.target.value }))}
+              placeholder="e.g. 60-count HDPE bottle"
+              className={inputClass}
+            />
+          </div>
+          <div className="md:col-span-2 flex flex-col gap-1.5">
+            <label className={labelClass}>Certifications needed</label>
+            <div className="flex flex-wrap gap-2">
+              {CERTIFICATIONS.map(c => {
+                const on = rfq.certifications.includes(c);
+                return (
+                  <button
+                    type="button"
+                    key={c}
+                    onClick={() => toggleCert(c)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-[11px] font-medium transition",
+                      on
+                        ? "border-brand bg-brand/[0.08] text-brand"
+                        : "border-black/[0.08] bg-white text-gray-500 hover:border-black/20 hover:text-gray-900"
+                    )}
+                  >
+                    {on && <Check className="mr-1 inline size-3" />}
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="md:col-span-2 flex flex-col gap-1.5">
+            <label className={labelClass}>Special requirements</label>
+            <textarea
+              value={rfq.requirements}
+              onChange={e => setRfq(r => ({ ...r, requirements: e.target.value }))}
+              rows={3}
+              placeholder="e.g. Vegan capsule, no titanium dioxide, custom blend label…"
+              className="w-full resize-none rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-[13px] outline-none transition placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/15"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Brief generator */}
+      <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center justify-between border-b border-black/[0.05] px-5 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-brand/10">
+              <Factory className="size-3.5 text-brand" />
+            </div>
+            <p className="text-[13px] font-semibold text-gray-900">Manufacturer Brief</p>
+            {streaming && (
+              <span className="flex items-center gap-1 text-[11px] text-brand">
+                <span className="size-1.5 animate-pulse rounded-full bg-brand" />
+                Generating
+              </span>
+            )}
+          </div>
+          {!streaming && brief && (
+            <button onClick={generateBrief} className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-700">
+              <RotateCcw className="size-3" />
+              Re-generate
+            </button>
+          )}
+        </div>
+        <div className="px-5 py-5">
+          {!started && !streaming ? (
+            <div className="py-10 text-center">
+              <p className="text-[12px] leading-relaxed text-gray-500 max-w-sm mx-auto">
+                Generate a manufacturer-ready brief combining your formulation, ingredient details, and RFQ requirements.
+              </p>
+              <button
+                onClick={generateBrief}
+                className="mt-4 mx-auto flex items-center gap-1.5 rounded-lg bg-gray-950 px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-gray-800"
+              >
+                <FileText className="size-3.5" />
+                Generate manufacturer brief
+              </button>
+            </div>
+          ) : briefError ? (
+            <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-[12px] text-red-600">{briefError}</div>
+          ) : (
+            <>
+              <StreamingMarkdown content={brief} />
+              {streaming && !brief && (
+                <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Assembling brief…
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Share link */}
+      <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="border-b border-black/[0.05] px-5 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-brand/10">
+              <Link2 className="size-3.5 text-brand" />
+            </div>
+            <p className="text-[13px] font-semibold text-gray-900">Public Share Link</p>
+          </div>
+          <p className="mt-1 text-[11px] text-gray-400">Anyone with this link can view a read-only version of this formulation.</p>
+        </div>
+        <div className="p-5">
+          {!shareToken ? (
+            <button
+              onClick={generateShareLink}
+              disabled={shareLoading}
+              className="flex items-center gap-1.5 rounded-lg bg-gray-950 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+            >
+              {shareLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
+              Generate share link
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={shareUrl}
+                readOnly
+                className="h-9 flex-1 rounded-lg border border-black/[0.08] bg-gray-50 px-3 font-mono text-[12px] text-gray-700 outline-none"
+              />
+              <button
+                onClick={copyShare}
+                className="flex items-center gap-1.5 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:border-black/20 hover:bg-black/[0.02]"
+              >
+                {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          )}
+          {shareError && <p className="mt-2 text-[11px] text-red-500">{shareError}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Version History ──────────────────────────────────────────────────────────
+function VersionHistory({
+  formulationId,
+  onRestore,
+}: {
+  formulationId: string;
+  onRestore: (snapshot: Formulation) => void;
+}) {
+  const [versions, setVersions] = useState<FormulationVersionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/formulations/${formulationId}/versions`, { cache: "no-store" });
+        const json = await res.json();
+        if (!cancelled && Array.isArray(json.versions)) setVersions(json.versions);
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [formulationId]);
+
+  return (
+    <section className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      <div className="border-b border-black/[0.05] px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <History className="size-3.5 text-gray-400" />
+          <h2 className="text-[13px] font-semibold text-gray-900">Version history</h2>
+          <span className="font-mono text-[11px] text-gray-400">{versions.length}</span>
+        </div>
+        <p className="mt-0.5 text-[11px] text-gray-400">Snapshots saved each time you update this formulation.</p>
+      </div>
+      {loading ? (
+        <p className="px-5 py-6 text-center text-[12px] text-gray-400">Loading…</p>
+      ) : versions.length === 0 ? (
+        <p className="px-5 py-6 text-center text-[12px] text-gray-400">No prior versions yet.</p>
+      ) : (
+        <ul className="divide-y divide-black/[0.04]">
+          {versions.map(v => (
+            <li key={v.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3">
+              <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-600">v{v.version}</span>
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-medium text-gray-900">{v.snapshot?.name ?? "Untitled"}</p>
+                <p className="text-[11px] text-gray-400">
+                  {new Date(v.created_at).toLocaleString()} · {Array.isArray(v.snapshot?.ingredients) ? v.snapshot.ingredients.length : 0} ingredients · {v.snapshot?.status ? STATUS_LABELS[v.snapshot.status] : "—"}
+                </p>
+              </div>
+              <button
+                onClick={() => onRestore(v.snapshot)}
+                className="rounded-md border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 transition hover:border-black/20 hover:bg-black/[0.02]"
+              >
+                Restore
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function FormulationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -478,6 +880,8 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
   const [statusBusy, setStatusBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editFormKey, setEditFormKey] = useState(0);
+  const [editOverrides, setEditOverrides] = useState<Partial<FormulationFormValues> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -605,6 +1009,7 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
     { key: "overview", label: "Overview" },
     { key: "research", label: "Research" },
     { key: "compliance", label: `Compliance${formulation.compliance_score != null ? ` · ${formulation.compliance_score}` : ""}` },
+    { key: "handoff", label: "Handoff" },
     { key: "edit", label: "Edit" },
   ];
 
@@ -630,6 +1035,13 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/formulations/${id}/print`}
+            className="flex items-center gap-1.5 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:border-black/20 hover:bg-black/[0.02]"
+          >
+            <FileText className="size-3.5" />
+            Export PDF
+          </Link>
           <button
             onClick={exportDossier}
             className="flex items-center gap-1.5 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-[12px] font-medium text-gray-700 transition hover:border-black/20 hover:bg-black/[0.02]"
@@ -697,24 +1109,47 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
           onScoreUpdate={score => setFormulation(f => f ? { ...f, compliance_score: score } : f)}
         />
       )}
+      {tab === "handoff" && <HandoffTab formulation={formulation} />}
       {tab === "edit" && (
-        <FormulationForm
-          submitLabel="Save changes"
-          showStatus
-          defaultValues={{
-            name: formulation.name,
-            description: formulation.description ?? "",
-            status: formulation.status,
-            target_dose: formulation.target_dose ?? "",
-            serving_size: formulation.serving_size ?? "",
-            capsule_size: formulation.capsule_size ?? "",
-            capsules_per_serving: formulation.capsules_per_serving,
-            notes: formulation.notes ?? "",
-            ingredients: formulation.ingredients ?? [],
-          }}
-          onSubmit={handleUpdate}
-          onCancel={() => setTab("overview")}
-        />
+        <div className="space-y-5">
+          <FormulationForm
+            key={editFormKey}
+            submitLabel="Save changes"
+            showStatus
+            defaultValues={{
+              name: formulation.name,
+              description: formulation.description ?? "",
+              status: formulation.status,
+              target_dose: formulation.target_dose ?? "",
+              serving_size: formulation.serving_size ?? "",
+              capsule_size: formulation.capsule_size ?? "",
+              capsules_per_serving: formulation.capsules_per_serving,
+              notes: formulation.notes ?? "",
+              ingredients: formulation.ingredients ?? [],
+              ...(editOverrides ?? {}),
+            }}
+            onSubmit={handleUpdate}
+            onCancel={() => setTab("overview")}
+          />
+          <VersionHistory
+            formulationId={id}
+            onRestore={snapshot => {
+              setEditOverrides({
+                name: snapshot.name,
+                description: snapshot.description ?? "",
+                status: snapshot.status,
+                target_dose: snapshot.target_dose ?? "",
+                serving_size: snapshot.serving_size ?? "",
+                capsule_size: snapshot.capsule_size ?? "",
+                capsules_per_serving: snapshot.capsules_per_serving,
+                notes: snapshot.notes ?? "",
+                ingredients: Array.isArray(snapshot.ingredients) ? snapshot.ingredients : [],
+              });
+              setEditFormKey(k => k + 1);
+              toast.success("Version loaded into editor — review and save to apply.");
+            }}
+          />
+        </div>
       )}
 
       {/* Delete modal */}

@@ -80,9 +80,9 @@ const CAPABILITIES = [
 ];
 
 const PROOF_POINTS = [
-  { value: "50M+", label: "research documents indexed across the platform workflow" },
-  { value: "48h", label: "average manufacturer response target for active RFQs" },
-  { value: "1", label: "shared workflow from discovery through factory handoff" },
+  { value: "AI-powered", label: "evidence-based ingredient research and formulation analysis" },
+  { value: "< 60s", label: "to generate a complete formulation from a single health goal" },
+  { value: "3-step", label: "workflow from research to compliance review to manufacturer handoff" },
 ];
 
 export default function HomePage() {
@@ -102,17 +102,17 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink
-                href="/get-access"
+                href="/sign-up"
                 className="rounded-full bg-gray-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
               >
-                Join waitlist
+                Get started free
               </ButtonLink>
               <ButtonLink
-                href="/features"
+                href="/sign-in"
                 variant="ghost"
                 className="rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-medium text-gray-900 transition hover:border-black/20 hover:bg-black/[0.02]"
               >
-                Explore platform <ArrowRight className="size-4" />
+                Sign in <ArrowRight className="size-4" />
               </ButtonLink>
             </div>
             <p className="fine-print mt-5">
@@ -308,12 +308,12 @@ export default function HomePage() {
             operators, and agencies that want a more rigorous product development
             workflow.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <ButtonLink
-              href="/get-access"
+              href="/sign-up"
               className="rounded-full bg-gray-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
             >
-              Join waitlist
+              Create account
             </ButtonLink>
             <ButtonLink
               href="/pricing"
@@ -322,6 +322,12 @@ export default function HomePage() {
             >
               Review pricing
             </ButtonLink>
+            <Link
+              href="/sign-up"
+              className="text-sm font-medium text-brand hover:underline"
+            >
+              or sign up directly <ArrowRight className="inline size-4" />
+            </Link>
           </div>
         </div>
       </section>

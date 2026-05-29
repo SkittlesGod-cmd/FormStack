@@ -82,6 +82,29 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
+  // Snapshot current state for version history (best-effort — ignore if table/column missing).
+  const { data: current } = await supabase
+    .from("formulations")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (current) {
+    const currentVersion = (current as { version?: number }).version ?? 1;
+    try {
+      await supabase.from("formulation_versions").insert({
+        formulation_id: id,
+        user_id: user.id,
+        version: currentVersion,
+        snapshot: current,
+      });
+      (update as Record<string, unknown>).version = currentVersion + 1;
+    } catch {
+      // Versioning is optional — proceed even if migration hasn't been run.
+    }
+  }
+
   const { data, error } = await supabase
     .from("formulations")
     .update(update)
