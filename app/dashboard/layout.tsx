@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Beaker, ChevronDown, FlaskConical, LayoutDashboard, LogOut, User } from "lucide-react";
+import { Beaker, ChevronDown, CreditCard, FlaskConical, LayoutDashboard, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@/utils/supabase/client";
 
@@ -117,6 +117,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     >
                       <User className="size-3.5 text-gray-400" />
                       Profile
+                    </Link>
+                    <Link
+                      href="/dashboard/billing"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-gray-700 transition hover:bg-black/[0.04]"
+                    >
+                      <CreditCard className="size-3.5 text-gray-400" />
+                      Billing
                     </Link>
                     <button
                       onClick={handleSignOut}

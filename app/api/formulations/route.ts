@@ -6,6 +6,8 @@ import {
   FORMULATION_STATUSES,
   createFormulationSchema,
 } from "@/lib/formulations/types";
+import { getUserSubscription, getFormulationCount } from "@/lib/billing/subscription";
+import { canCreateFormulation } from "@/lib/billing/plans";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -72,6 +74,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Invalid JSON body" },
       { status: 400 }
+    );
+  }
+
+  // Plan gating
+  const [sub, count] = await Promise.all([
+    getUserSubscription(user.id),
+    getFormulationCount(user.id),
+  ]);
+  if (!canCreateFormulation(sub.plan, count)) {
+    return NextResponse.json(
+      { error: "Formulation limit reached. Upgrade your plan to create more.", plan: sub.plan, limit: true },
+      { status: 403 }
     );
   }
 

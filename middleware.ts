@@ -14,6 +14,7 @@ const PUBLIC_ROUTES = [
   "/api/auth/callback",
   "/f",
   "/api/f",
+  "/api/billing/webhook",
 ];
 
 const AUTH_ROUTES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];

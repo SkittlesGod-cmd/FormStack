@@ -12,10 +12,24 @@ CREATE TABLE IF NOT EXISTS formulation_versions (
 
 ALTER TABLE formulation_versions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read own formulation versions"
-  ON formulation_versions FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'formulation_versions'
+    AND policyname = 'Users can read own formulation versions'
+  ) THEN
+    CREATE POLICY "Users can read own formulation versions"
+      ON formulation_versions FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
 
-CREATE POLICY "Users can insert own formulation versions"
-  ON formulation_versions FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'formulation_versions'
+    AND policyname = 'Users can insert own formulation versions'
+  ) THEN
+    CREATE POLICY "Users can insert own formulation versions"
+      ON formulation_versions FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
