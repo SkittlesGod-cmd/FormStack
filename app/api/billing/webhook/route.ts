@@ -62,8 +62,14 @@ export async function POST(req: NextRequest) {
     eventType === EventName.SubscriptionTrialing
   ) {
     const sub = event.data;
+    console.log("[webhook] sub.custom_data:", JSON.stringify(sub.custom_data));
+    console.log("[webhook] sub.customer_id:", sub.customer_id);
+    console.log("[webhook] sub.items:", JSON.stringify(sub.items?.[0]));
     const userId: string | undefined = sub.custom_data?.user_id;
-    if (!userId) return NextResponse.json({ received: true });
+    if (!userId) {
+      console.log("[webhook] no user_id in custom_data — skipping upsert");
+      return NextResponse.json({ received: true });
+    }
 
     const priceId = sub.items?.[0]?.price?.id;
     const plan = planFromPriceId(priceId);
