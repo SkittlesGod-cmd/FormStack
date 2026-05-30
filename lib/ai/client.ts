@@ -20,11 +20,11 @@ export function getAIClient(): OpenAI {
   return _client;
 }
 
-// Nvidia Llama 3.3 Nemotron Super 49B — free on OpenRouter
-export const MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1:free";
+// Llama 3.3 70B — free on OpenRouter, strong instruction following
+export const MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
-// Same model for compliance
-export const MODEL_COMPLIANCE = "nvidia/llama-3.3-nemotron-super-49b-v1:free";
+// Nemotron 120B — free on OpenRouter, used for compliance (larger context reasoning)
+export const MODEL_COMPLIANCE = "nvidia/nemotron-3-super-120b-a12b:free";
 
 export const MAX_TOKENS = 8000;
 export const MAX_TOKENS_FORMULATE = 16000;
