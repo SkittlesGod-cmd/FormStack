@@ -137,9 +137,9 @@ Use these placeholders in your templates:
 http://localhost:3000
 http://localhost:3000/dashboard
 http://localhost:3000/auth/callback
-https://formlayer.ai
-https://formlayer.ai/dashboard
-https://formlayer.ai/auth/callback
+https://formlayer.co
+https://formlayer.co/dashboard
+https://formlayer.co/auth/callback
 ```
 
 3. Click **Save**

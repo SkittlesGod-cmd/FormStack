@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/hooks/auth-context";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://formlayer.ai";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://formlayer.co";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

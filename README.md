@@ -63,7 +63,7 @@ Then copy your **Project URL** and **anon public key** from Dashboard → Projec
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
-| `NEXT_PUBLIC_SITE_URL` | Canonical site URL (e.g. `https://formlayer.ai`) |
+| `NEXT_PUBLIC_SITE_URL` | Canonical site URL (e.g. `https://formlayer.co`) |
 
 ## Build & Deploy
 
