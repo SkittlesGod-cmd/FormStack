@@ -4,23 +4,27 @@ let _client: OpenAI | null = null;
 
 export function getAIClient(): OpenAI {
   if (!_client) {
-    const key = process.env.DEEPSEEK_API_KEY;
+    const key = process.env.OPENROUTER_API_KEY;
     if (!key) {
-      throw new Error("DEEPSEEK_API_KEY is not configured.");
+      throw new Error("OPENROUTER_API_KEY is not configured.");
     }
     _client = new OpenAI({
-      baseURL: "https://api.deepseek.com",
+      baseURL: "https://openrouter.ai/api/v1",
       apiKey: key,
+      defaultHeaders: {
+        "HTTP-Referer": "https://formlayer.co",
+        "X-Title": "FormLayer",
+      },
     });
   }
   return _client;
 }
 
-// DeepSeek R1 — strong reasoning, accurate scientific knowledge
-export const MODEL = "deepseek-reasoner";
+// DeepSeek V4 Flash — best free model on OpenRouter (GPQA Diamond 88.1%, 1M context)
+export const MODEL = "deepseek/deepseek-v4-flash:free";
 
-// DeepSeek V3 — faster, cheaper for compliance checks
-export const MODEL_COMPLIANCE = "deepseek-chat";
+// Same model for compliance — strong enough, avoids extra API calls
+export const MODEL_COMPLIANCE = "deepseek/deepseek-v4-flash:free";
 
 export const MAX_TOKENS = 8000;
 export const MAX_TOKENS_FORMULATE = 16000;
