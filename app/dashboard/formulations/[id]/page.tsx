@@ -40,7 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/lib/errors";
 
-type Tab = "overview" | "interactions" | "research" | "compliance" | "handoff" | "edit";
+type Tab = "overview" | "interactions" | "research" | "compliance" | "handoff" | "edit" | "label";
 
 interface FormulationVersionRow {
   id: string;
@@ -227,6 +227,201 @@ function CostEstimator({ formulation }: { formulation: Formulation }) {
   );
 }
 
+// ─── Formula Score Card ────────────────────────────────────────────────────────
+function computeFormulaScore(formulation: Formulation): { score: number; label: string; color: string; breakdown: { label: string; score: number }[] } {
+  const ings = formulation.ingredients;
+  const gradeScore = ings.length === 0 ? 60 : (ings.reduce((sum, i) => {
+    return sum + (i.evidence_grade === "A" ? 92 : i.evidence_grade === "B" ? 68 : i.evidence_grade === "C" ? 40 : 58);
+  }, 0) / ings.length);
+  const doseScore = ings.length === 0 ? 65 : (ings.reduce((sum, i) => {
+    return sum + (i.dose_assessment === "at_studied_dose" ? 95 : i.dose_assessment === "below_studied_dose" ? 62 : i.dose_assessment === "above_studied_dose" ? 48 : 68);
+  }, 0) / ings.length);
+  const complianceScore = formulation.compliance_score ?? 70;
+  const diversityScore = Math.min(95, 40 + ings.length * 7);
+  const overall = Math.round(gradeScore * 0.35 + doseScore * 0.35 + complianceScore * 0.2 + diversityScore * 0.1);
+  const label = overall >= 85 ? "Excellent" : overall >= 70 ? "Good" : overall >= 55 ? "Fair" : "Needs work";
+  const color = overall >= 85 ? "#10b981" : overall >= 70 ? "#5b6ee1" : overall >= 55 ? "#f59e0b" : "#ef4444";
+  return {
+    score: overall,
+    label,
+    color,
+    breakdown: [
+      { label: "Evidence grades", score: Math.round(gradeScore) },
+      { label: "Dose accuracy", score: Math.round(doseScore) },
+      { label: "Compliance", score: complianceScore },
+      { label: "Stack depth", score: Math.round(diversityScore) },
+    ],
+  };
+}
+
+function FormulaScoreCard({ formulation }: { formulation: Formulation }) {
+  const { score, label, color, breakdown } = computeFormulaScore(formulation);
+  const r = 28; const cx = 36; const cy = 36;
+  const circum = 2 * Math.PI * r;
+  const filled = circum * (score / 100);
+  return (
+    <div className="flex flex-wrap items-center gap-5 rounded-xl border border-black/[0.06] bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      {/* Ring */}
+      <div className="relative shrink-0">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth="7" />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+            strokeDasharray={`${filled} ${circum}`} strokeDashoffset={circum / 4} />
+          <text x={cx} y={cy + 5} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, fill: color, fontFamily: "inherit" }}>{score}</text>
+        </svg>
+      </div>
+      {/* Label + breakdown */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <p className="text-[15px] font-semibold text-gray-950">Formula score</p>
+          <span className="text-[12px] font-semibold" style={{ color }}>{label}</span>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
+          {breakdown.map(({ label: l, score: s }) => (
+            <div key={l}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[10px] text-gray-400">{l}</span>
+                <span className="text-[10px] font-semibold text-gray-600">{s}</span>
+              </div>
+              <div className="h-1 rounded-full bg-gray-100">
+                <div className="h-1 rounded-full" style={{ width: `${s}%`, background: color }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Supplement Facts Label ────────────────────────────────────────────────────
+function SupplementFactsTab({ formulation }: { formulation: Formulation }) {
+  const [copied, setCopied] = useState(false);
+  const labelRef = useRef<HTMLDivElement>(null);
+
+  const servingSize = formulation.serving_size || (formulation.capsules_per_serving ? `${formulation.capsules_per_serving} capsule${formulation.capsules_per_serving > 1 ? "s" : ""}` : "1 serving");
+
+  // Compute % DV for common vitamins/minerals
+  const DV_MAP: Record<string, { dv: number; unit: string }> = {
+    "vitamin c": { dv: 90, unit: "mg" },
+    "vitamin d": { dv: 20, unit: "mcg" },
+    "vitamin d3": { dv: 20, unit: "mcg" },
+    "vitamin e": { dv: 15, unit: "mg" },
+    "vitamin k": { dv: 120, unit: "mcg" },
+    "vitamin b1": { dv: 1.2, unit: "mg" },
+    "thiamine": { dv: 1.2, unit: "mg" },
+    "vitamin b2": { dv: 1.3, unit: "mg" },
+    "riboflavin": { dv: 1.3, unit: "mg" },
+    "niacin": { dv: 16, unit: "mg" },
+    "vitamin b5": { dv: 5, unit: "mg" },
+    "pantothenic acid": { dv: 5, unit: "mg" },
+    "vitamin b6": { dv: 1.7, unit: "mg" },
+    "pyridoxine": { dv: 1.7, unit: "mg" },
+    "biotin": { dv: 30, unit: "mcg" },
+    "vitamin b9": { dv: 400, unit: "mcg" },
+    "folate": { dv: 400, unit: "mcg" },
+    "folic acid": { dv: 400, unit: "mcg" },
+    "vitamin b12": { dv: 2.4, unit: "mcg" },
+    "calcium": { dv: 1300, unit: "mg" },
+    "iron": { dv: 18, unit: "mg" },
+    "magnesium": { dv: 420, unit: "mg" },
+    "zinc": { dv: 11, unit: "mg" },
+    "selenium": { dv: 55, unit: "mcg" },
+    "iodine": { dv: 150, unit: "mcg" },
+    "chromium": { dv: 35, unit: "mcg" },
+    "manganese": { dv: 2.3, unit: "mg" },
+    "potassium": { dv: 4700, unit: "mg" },
+  };
+
+  function getDV(ing: { name: string; dose?: string; unit?: string }): string {
+    if (!ing.dose) return "†";
+    const key = Object.keys(DV_MAP).find(k => ing.name.toLowerCase().includes(k));
+    if (!key) return "†";
+    const { dv, unit } = DV_MAP[key];
+    const doseVal = parseFloat(ing.dose);
+    if (isNaN(doseVal)) return "†";
+    // Convert to same unit if needed
+    let doseInUnit = doseVal;
+    const ingUnit = (ing.unit ?? "mg").toLowerCase();
+    if (ingUnit === "mcg" && unit === "mg") doseInUnit = doseVal / 1000;
+    if (ingUnit === "mg" && unit === "mcg") doseInUnit = doseVal * 1000;
+    if (ingUnit === "g" && unit === "mg") doseInUnit = doseVal * 1000;
+    const pct = Math.round((doseInUnit / dv) * 100);
+    return `${pct}%`;
+  }
+
+  function copyLabel() {
+    if (!labelRef.current) return;
+    const text = Array.from(labelRef.current.querySelectorAll("[data-row]"))
+      .map(el => el.textContent).join("\n");
+    navigator.clipboard.writeText(text ?? "").catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-[14px] font-semibold text-gray-900">Supplement Facts Label</h2>
+          <p className="text-[11px] text-gray-400">FDA-style panel based on your formulation data. Not for regulatory submission without review.</p>
+        </div>
+        <button onClick={copyLabel}
+          className="flex items-center gap-1.5 rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[12px] font-medium text-gray-600 transition hover:border-black/20">
+          {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+          {copied ? "Copied" : "Copy text"}
+        </button>
+      </div>
+
+      {/* The label */}
+      <div className="flex justify-center">
+        <div ref={labelRef} className="w-72 border-4 border-black bg-white font-['Arial',sans-serif] text-black">
+          {/* Header */}
+          <div className="border-b-8 border-black px-2 pb-1">
+            <p className="text-[28px] font-extrabold leading-none tracking-tight">Supplement Facts</p>
+          </div>
+          {/* Serving */}
+          <div className="border-b border-black px-2 py-1 text-[10px]">
+            <p data-row=""><span className="font-bold">Serving Size</span> {servingSize}</p>
+            <p data-row=""><span className="font-bold">Servings Per Container</span> 30</p>
+          </div>
+          {/* Column headers */}
+          <div className="border-b-4 border-black px-2 py-0.5">
+            <div className="flex justify-end gap-3 text-[9px] font-bold">
+              <span>Amount Per Serving</span>
+              <span>% Daily Value</span>
+            </div>
+          </div>
+          {/* Ingredients */}
+          {formulation.ingredients.map((ing, i) => (
+            <div key={ing.id} data-row="" className={cn("flex items-baseline justify-between px-2 py-0.5 text-[10px]", i < formulation.ingredients.length - 1 ? "border-b border-gray-300" : "")}>
+              <span className="font-bold pr-2 flex-1">{ing.name}</span>
+              <div className="flex items-baseline gap-3 shrink-0">
+                <span>{ing.dose ? `${ing.dose}${ing.unit ? ` ${ing.unit}` : ""}` : "—"}</span>
+                <span className="w-8 text-right">{getDV(ing)}</span>
+              </div>
+            </div>
+          ))}
+          {/* DV footnote */}
+          <div className="border-t-4 border-black px-2 py-1 text-[9px]">
+            <p>† Daily Value not established.</p>
+          </div>
+          {/* Other ingredients */}
+          {formulation.excipients && formulation.excipients.length > 0 && (
+            <div className="border-t border-black px-2 py-1 text-[9px]">
+              <p><span className="font-bold">Other Ingredients:</span> {formulation.excipients.map(e => e.name).join(", ")}.</p>
+            </div>
+          )}
+          {/* Disclaimer */}
+          <div className="border-t border-black px-2 py-1 text-[8px] leading-tight">
+            <p>These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Overview Tab ──────────────────────────────────────────────────────────────
 function OverviewTab({
   formulation,
@@ -236,6 +431,39 @@ function OverviewTab({
   onIngredientRefreshed: (updated: FormulationIngredient) => void;
 }) {
   const [refreshing, setRefreshing] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{ name: string; dose: string; unit: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function saveEdit(ingId: string, formulationId: string) {
+    if (!editDraft) return;
+    setSaving(true);
+    try {
+      const updated = formulation.ingredients.map(i =>
+        i.id === ingId ? { ...i, name: editDraft.name, dose: editDraft.dose, unit: editDraft.unit } : i
+      );
+      const res = await fetch(`/api/formulations/${formulationId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: updated }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      onIngredientRefreshed({ ...formulation.ingredients.find(i => i.id === ingId)!, name: editDraft.name, dose: editDraft.dose, unit: editDraft.unit });
+      setEditingId(null);
+      setEditDraft(null);
+    } catch {
+      // silently fail for now
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function parseClinicalRange(range: string | undefined): { min: number; max: number; unit: string } | null {
+    if (!range) return null;
+    const m = range.match(/(\d[\d,]*)\s*[–\-]\s*(\d[\d,]*)\s*(mg|mcg|g|IU|CFU)/i);
+    if (!m) return null;
+    return { min: parseInt(m[1].replace(/,/g, "")), max: parseInt(m[2].replace(/,/g, "")), unit: m[3] };
+  }
 
   async function refreshIngredient(ing: FormulationIngredient) {
     setRefreshing(ing.id);
@@ -315,61 +543,132 @@ function OverviewTab({
             {formulation.ingredients.map((ing) => (
               <li key={ing.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {ing.evidence_grade && (
-                        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", gradeColor(ing.evidence_grade))}>
-                          {ing.evidence_grade}
-                        </span>
+                  {editingId === ing.id && editDraft ? (
+                    <div className="flex-1 space-y-2">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <input
+                          type="text"
+                          value={editDraft.name}
+                          onChange={e => setEditDraft(d => ({ ...d!, name: e.target.value }))}
+                          className="flex-1 min-w-32 h-8 rounded-lg border border-brand/30 bg-white px-3 text-[13px] outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                          placeholder="Ingredient name"
+                        />
+                        <input
+                          type="text"
+                          value={editDraft.dose}
+                          onChange={e => setEditDraft(d => ({ ...d!, dose: e.target.value }))}
+                          className="w-20 h-8 rounded-lg border border-brand/30 bg-white px-3 text-[13px] outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                          placeholder="Dose"
+                        />
+                        <select
+                          value={editDraft.unit}
+                          onChange={e => setEditDraft(d => ({ ...d!, unit: e.target.value }))}
+                          className="h-8 rounded-lg border border-brand/30 bg-white px-2 text-[13px] outline-none focus:border-brand"
+                        >
+                          {["mg","mcg","g","IU","CFU","mL","%DV"].map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => saveEdit(ing.id, formulation.id)}
+                          disabled={saving}
+                          className="flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
+                        >
+                          {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                          Save
+                        </button>
+                        <button type="button" onClick={() => { setEditingId(null); setEditDraft(null); }}
+                          className="rounded-md border border-black/[0.08] px-3 py-1 text-[11px] text-gray-500 hover:text-gray-900">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {ing.evidence_grade && (
+                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", gradeColor(ing.evidence_grade))}>
+                            {ing.evidence_grade}
+                          </span>
+                        )}
+                        <p className="text-[13px] font-medium text-gray-900">{ing.name || "—"}</p>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingId(ing.id); setEditDraft({ name: ing.name, dose: ing.dose ?? "", unit: ing.unit ?? "mg" }); }}
+                          className="rounded p-0.5 text-gray-300 transition hover:bg-gray-100 hover:text-brand"
+                          title="Edit inline"
+                        >
+                          <svg className="size-3" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.609zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81 3.09 11.47a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.25.25 0 00.108-.064L11.19 6.25z"/></svg>
+                        </button>
+                        <p className="font-mono text-[12px] text-gray-400">
+                          {ing.dose ? `${ing.dose}${ing.unit ? ` ${ing.unit}` : ""}` : "—"}
+                        </p>
+                        {ing.dose_assessment && (
+                          <span className={cn("text-[11px] font-medium", doseColor(ing.dose_assessment))}>
+                            {doseLabel(ing.dose_assessment)}
+                          </span>
+                        )}
+                      </div>
+                      {ing.clinical_dose_range && (
+                        <p className="mt-1 text-[11px] text-gray-400">Clinical range: {ing.clinical_dose_range}</p>
                       )}
-                      <p className="text-[13px] font-medium text-gray-900">{ing.name || "—"}</p>
-                      <p className="font-mono text-[12px] text-gray-400">
-                        {ing.dose ? `${ing.dose}${ing.unit ? ` ${ing.unit}` : ""}` : "—"}
-                      </p>
-                      {ing.dose_assessment && (
-                        <span className={cn("text-[11px] font-medium", doseColor(ing.dose_assessment))}>
-                          {doseLabel(ing.dose_assessment)}
-                        </span>
+                      {/* Dose bar */}
+                      {(() => {
+                        const cr = parseClinicalRange(ing.clinical_dose_range);
+                        const dose = ing.dose ? parseFloat(ing.dose) : null;
+                        if (!cr || dose === null || isNaN(dose)) return null;
+                        const total = cr.max - cr.min;
+                        const pct = total > 0 ? Math.max(2, Math.min(100, ((dose - cr.min) / total) * 100)) : 50;
+                        const barColor = ing.dose_assessment === "at_studied_dose" ? "#10b981"
+                          : ing.dose_assessment === "below_studied_dose" ? "#f59e0b"
+                          : ing.dose_assessment === "above_studied_dose" ? "#ef4444"
+                          : "#5b6ee1";
+                        return (
+                          <div className="mt-2 space-y-0.5">
+                            <div className="relative h-1.5 rounded-full bg-gray-100">
+                              <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                            </div>
+                            <div className="flex justify-between text-[9px] text-gray-300">
+                              <span>{cr.min}{cr.unit}</span>
+                              <span>{cr.max}{cr.unit}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {ing.rationale && (
+                        <p className="mt-1 text-[12px] leading-relaxed text-gray-500">{ing.rationale}</p>
+                      )}
+                      {/* Form recommendation */}
+                      {ing.form_recommendation && (
+                        <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                          <Zap className="mt-0.5 size-3 shrink-0 text-amber-600" />
+                          <p className="text-[11px] text-amber-800">
+                            <span className="font-semibold">Better form available:</span> {ing.form_recommendation}
+                            {ing.preferred_form && <span className="ml-1 font-medium text-amber-700">→ {ing.preferred_form}</span>}
+                          </p>
+                        </div>
+                      )}
+                      {/* PubMed citations */}
+                      {ing.pubmed_ids && ing.pubmed_ids.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {ing.pubmed_ids.map((pmid, i) => (
+                            <a
+                              key={pmid}
+                              href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={ing.pubmed_titles?.[i] ?? pmid}
+                              className="inline-flex items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-100 transition"
+                            >
+                              PMID {pmid}
+                              <ExternalLink className="size-2.5" />
+                            </a>
+                          ))}
+                        </div>
                       )}
                     </div>
-
-                    {ing.clinical_dose_range && (
-                      <p className="mt-1 text-[11px] text-gray-400">Clinical range: {ing.clinical_dose_range}</p>
-                    )}
-                    {ing.rationale && (
-                      <p className="mt-1 text-[12px] leading-relaxed text-gray-500">{ing.rationale}</p>
-                    )}
-
-                    {/* Form recommendation */}
-                    {ing.form_recommendation && (
-                      <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
-                        <Zap className="mt-0.5 size-3 shrink-0 text-amber-600" />
-                        <p className="text-[11px] text-amber-800">
-                          <span className="font-semibold">Better form available:</span> {ing.form_recommendation}
-                          {ing.preferred_form && <span className="ml-1 font-medium text-amber-700">→ {ing.preferred_form}</span>}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* PubMed citations */}
-                    {ing.pubmed_ids && ing.pubmed_ids.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {ing.pubmed_ids.map((pmid, i) => (
-                          <a
-                            key={pmid}
-                            href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={ing.pubmed_titles?.[i] ?? pmid}
-                            className="inline-flex items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-100 transition"
-                          >
-                            PMID {pmid}
-                            <ExternalLink className="size-2.5" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   <button
                     type="button"
@@ -668,6 +967,78 @@ function InteractionsTab({ formulation }: { formulation: Formulation }) {
 
       {result && (
         <>
+          {/* Interaction matrix */}
+          {(result.synergies.length > 0 || result.antagonisms.length > 0) && formulation.ingredients.length >= 2 && (
+            <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <div className="border-b border-black/[0.05] px-5 py-3.5">
+                <h2 className="text-[13px] font-semibold text-gray-900">Interaction Matrix</h2>
+                <p className="mt-0.5 text-[11px] text-gray-400">
+                  <span className="inline-flex items-center gap-1 mr-3"><span className="size-2.5 rounded-sm bg-emerald-100 border border-emerald-200 inline-block" /> Synergy</span>
+                  <span className="inline-flex items-center gap-1 mr-3"><span className="size-2.5 rounded-sm bg-red-100 border border-red-200 inline-block" /> Concern</span>
+                  <span className="inline-flex items-center gap-1"><span className="size-2.5 rounded-sm bg-gray-100 border border-gray-200 inline-block" /> Neutral</span>
+                </p>
+              </div>
+              <div className="overflow-x-auto p-4">
+                <table className="text-[10px]">
+                  <thead>
+                    <tr>
+                      <th className="w-24 pr-2" />
+                      {formulation.ingredients.map(col => (
+                        <th key={col.id} className="px-1 pb-2 font-medium text-gray-500 text-center max-w-[60px]">
+                          <div className="truncate max-w-[56px]" title={col.name}>{col.name.split(" ")[0]}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formulation.ingredients.map(row => (
+                      <tr key={row.id}>
+                        <td className="pr-2 py-0.5 font-medium text-gray-600 max-w-[96px]">
+                          <div className="truncate max-w-[90px] text-right" title={row.name}>{row.name.split(" ")[0]}</div>
+                        </td>
+                        {formulation.ingredients.map(col => {
+                          if (row.id === col.id) return (
+                            <td key={col.id} className="px-1 py-0.5">
+                              <div className="size-8 rounded-md bg-gray-950/5" />
+                            </td>
+                          );
+                          const synergy = result.synergies.find(s =>
+                            s.ingredients.some(n => n.toLowerCase().includes(row.name.split(" ")[0].toLowerCase())) &&
+                            s.ingredients.some(n => n.toLowerCase().includes(col.name.split(" ")[0].toLowerCase()))
+                          );
+                          const antagonism = result.antagonisms.find(a =>
+                            a.ingredients.some(n => n.toLowerCase().includes(row.name.split(" ")[0].toLowerCase())) &&
+                            a.ingredients.some(n => n.toLowerCase().includes(col.name.split(" ")[0].toLowerCase()))
+                          );
+                          const cls = synergy
+                            ? "bg-emerald-100 border-emerald-200 text-emerald-700"
+                            : antagonism
+                            ? "bg-red-100 border-red-200 text-red-700"
+                            : "bg-gray-50 border-gray-200 text-gray-400";
+                          const symbol = synergy
+                            ? (synergy.magnitude === "strong" ? "+++" : synergy.magnitude === "moderate" ? "++" : "+")
+                            : antagonism
+                            ? (antagonism.severity === "high" ? "!!!" : antagonism.severity === "medium" ? "!!" : "!")
+                            : "·";
+                          return (
+                            <td key={col.id} className="px-1 py-0.5">
+                              <div
+                                title={synergy ? `${synergy.effect}` : antagonism ? `${antagonism.effect}` : "No known interaction"}
+                                className={cn("size-8 rounded-md border flex items-center justify-center font-bold cursor-default", cls)}
+                              >
+                                {symbol}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Overall assessment */}
           <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between border-b border-black/[0.05] px-5 py-3.5">
@@ -1765,6 +2136,7 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
     { key: "interactions", label: "Interactions" },
     { key: "research", label: "Research" },
     { key: "compliance", label: `Compliance${formulation.compliance_score != null ? ` · ${formulation.compliance_score}` : ""}` },
+    { key: "label", label: "Label" },
     { key: "handoff", label: "Handoff" },
     { key: "edit", label: "Edit" },
   ];
@@ -1844,6 +2216,9 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
         ))}
       </div>
 
+      {/* Formula score card */}
+      <FormulaScoreCard formulation={formulation} />
+
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-black/[0.06]">
         {TABS.map(({ key, label }) => (
@@ -1885,6 +2260,7 @@ export default function FormulationDetailPage({ params }: { params: Promise<{ id
           onFormulationUpdate={updated => setFormulation(updated)}
         />
       )}
+      {tab === "label" && <SupplementFactsTab formulation={formulation} />}
       {tab === "handoff" && <HandoffTab formulation={formulation} />}
       {tab === "edit" && (
         <div className="space-y-5">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   useForm,
   useFieldArray,
@@ -84,7 +84,143 @@ function FieldHint({ children }: { children: React.ReactNode }) {
   );
 }
 
+const INGREDIENT_SUGGESTIONS = [
+  // Amino acids & nootropics
+  "L-Theanine", "L-Tyrosine", "L-Carnitine", "L-Carnitine L-Tartrate", "Acetyl-L-Carnitine (ALCAR)",
+  "L-Glutamine", "L-Arginine", "L-Citrulline", "Citrulline Malate", "Beta-Alanine", "Taurine",
+  "Glycine", "L-Lysine", "L-Tryptophan", "5-HTP", "GABA", "N-Acetyl L-Tyrosine (NALT)",
+  "Alpha-GPC", "CDP-Choline (Citicoline)", "Phosphatidylserine",
+  // Adaptogens
+  "Ashwagandha (KSM-66®)", "Ashwagandha (Sensoril®)", "Rhodiola Rosea", "Holy Basil (Tulsi)",
+  "Eleuthero Root", "Schisandra Berry", "Maca Root", "Panax Ginseng", "American Ginseng",
+  "Astragalus Root",
+  // Vitamins
+  "Vitamin A (Retinol)", "Vitamin B1 (Thiamine HCl)", "Vitamin B2 (Riboflavin)",
+  "Vitamin B3 (Niacinamide)", "Vitamin B3 (Nicotinic Acid)", "Vitamin B5 (Pantothenic Acid)",
+  "Vitamin B6 (Pyridoxine HCl)", "Vitamin B7 (Biotin)", "Vitamin B9 (5-MTHF)",
+  "Vitamin B9 (Folic Acid)", "Vitamin B12 (Methylcobalamin)", "Vitamin B12 (Cyanocobalamin)",
+  "Vitamin C (Ascorbic Acid)", "Vitamin D3 (Cholecalciferol)", "Vitamin E (Mixed Tocopherols)",
+  "Vitamin K1 (Phylloquinone)", "Vitamin K2 (MK-7)",
+  // Minerals
+  "Magnesium Glycinate", "Magnesium Malate", "Magnesium Citrate", "Magnesium L-Threonate",
+  "Magnesium Oxide", "Zinc Picolinate", "Zinc Bisglycinate", "Iron Bisglycinate",
+  "Selenium (Selenomethionine)", "Chromium Picolinate", "Boron (Bororganic Glycine)",
+  "Iodine (Potassium Iodide)", "Calcium Carbonate", "Calcium Citrate",
+  "Potassium Citrate", "Manganese Bisglycinate",
+  // Performance & sports
+  "Creatine Monohydrate", "Creatine HCl", "Caffeine Anhydrous", "Caffeine (as DiCaffeine Malate)",
+  "TeaCrine® (Theacrine)", "Dynamine® (Methylliberine)", "Betaine Anhydrous",
+  "Beetroot Extract (Beta vulgaris)", "Agmatine Sulfate", "ElevATP®",
+  "Peak ATP® (Adenosine 5-Triphosphate)", "HMB (β-Hydroxy β-Methylbutyrate)",
+  // Cognitive / nootropic
+  "Bacopa Monnieri", "Lion's Mane (Hericium erinaceus)", "Ginkgo Biloba",
+  "Huperzine A", "Vinpocetine", "DMAE Bitartrate", "Uridine Monophosphate",
+  "PQQ (Pyrroloquinoline Quinone)", "Pterostilbene",
+  // Sleep & relaxation
+  "Melatonin", "Valerian Root Extract", "Passionflower Extract", "Lemon Balm Extract",
+  "Chamomile Extract", "Apigenin", "Ashwagandha (KSM-66®)", "L-Theanine",
+  // Antioxidants & longevity
+  "CoQ10 (Ubiquinol)", "CoQ10 (Ubiquinone)", "Alpha-Lipoic Acid (ALA)", "Resveratrol",
+  "Quercetin", "Curcumin (Longvida®)", "Curcumin (BCM-95®)", "Turmeric Root Extract",
+  "Astaxanthin", "Lycopene", "Lutein", "Zeaxanthin", "Trans-Resveratrol",
+  "NMN (Nicotinamide Mononucleotide)", "NR (Nicotinamide Riboside)", "Spermidine",
+  // Gut health
+  "Lactobacillus acidophilus", "Bifidobacterium lactis", "Lactobacillus rhamnosus GG",
+  "Saccharomyces boulardii", "Inulin", "FOS (Fructooligosaccharides)",
+  "Psyllium Husk", "Glucomannan", "Slippery Elm Bark",
+  // Hormonal & metabolic
+  "Berberine HCl", "Chromium Picolinate", "Bitter Melon Extract", "Cinnamon Bark Extract",
+  "DIM (Diindolylmethane)", "I3C (Indole-3-Carbinol)", "Tongkat Ali (LJ100®)",
+  "Fadogia Agrestis", "DHEA", "Pregnenolone",
+  // Omegas & lipids
+  "Fish Oil (EPA+DHA)", "Krill Oil", "Algae DHA", "GLA (Gamma-Linolenic Acid)",
+  "CLA (Conjugated Linoleic Acid)", "MCT Oil Powder",
+  // Botanical extracts
+  "Milk Thistle (Silymarin 80%)", "Saw Palmetto", "Nettle Root Extract",
+  "Black Cohosh Extract", "Echinacea Purpurea", "Elderberry Extract",
+  "Green Tea Extract (50% EGCG)", "Grape Seed Extract (OPC)", "Pycnogenol® (Pine Bark)",
+  "Garlic Extract", "Turmeric Root Extract", "Ginger Root Extract",
+];
+
 const UNIT_OPTIONS = ["mg", "mcg", "g", "IU", "CFU", "mL", "%DV", "mg NE", "mg ATE"];
+
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="font-semibold text-brand">{text.slice(idx, idx + query.length)}</strong>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+interface IngredientAutocompleteProps {
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  className?: string;
+}
+
+function IngredientAutocomplete({ value, onChange, onBlur, placeholder, className }: IngredientAutocompleteProps) {
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const suggestions = value.trim().length >= 1
+    ? INGREDIENT_SUGGESTIONS.filter(s => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8)
+    : [];
+
+  function select(s: string) {
+    onChange(s);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => { setFocused(true); setOpen(value.trim().length >= 1); }}
+        onBlur={() => { setFocused(false); onBlur?.(); }}
+        onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute left-0 top-full z-50 mt-0.5 max-h-52 w-full overflow-y-auto rounded-lg border border-black/[0.08] bg-white py-1 shadow-[0_4px_20px_rgba(0,0,0,0.10)]">
+          {suggestions.map(s => (
+            <li key={s}>
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); select(s); }}
+                className="flex w-full items-center px-3 py-1.5 text-left text-[12px] text-gray-800 hover:bg-brand/[0.05] hover:text-brand"
+              >
+                {highlightMatch(s, value)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 // ── Sortable ingredient row ────────────────────────────────────────────────────
 interface SortableIngredientRowProps {
@@ -135,10 +271,18 @@ function SortableIngredientRow({ fieldId, idx, register, control, onRemove }: So
         render={({ field: f }) => <input type="hidden" {...f} value={f.value ?? ""} />}
       />
       <div className="col-span-11 md:col-span-5">
-        <Input
-          {...register(`ingredients.${idx}.name`)}
-          placeholder="e.g. L-Theanine, Ashwagandha KSM-66®"
-          className={cn(fieldClass, "h-8")}
+        <Controller
+          control={control}
+          name={`ingredients.${idx}.name`}
+          render={({ field }) => (
+            <IngredientAutocomplete
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              placeholder="e.g. L-Theanine, Ashwagandha KSM-66®"
+              className={cn(fieldClass, "h-8")}
+            />
+          )}
         />
       </div>
       <div className="col-span-5 md:col-span-2">
