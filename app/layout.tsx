@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s | FormLayer",
   },
   description:
-    "Evidence-backed supplement formulations in minutes. RAG-powered ingredient research, FDA compliance checking, and manufacturer connections for supplement brands and agencies.",
+    "Go from health goal to a manufacturer-ready supplement formulation in minutes. Clinical dose ranges from published RCTs, FDA compliance scoring, and one-click manufacturer handoff.",
   keywords: [
     "supplement formulation",
     "nutraceutical AI",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "FormLayer — AI Supplement Formulation Platform",
     description:
-      "Evidence-backed supplement formulations in minutes. RAG-powered ingredient research, FDA compliance checking, and manufacturer connections.",
+      "Evidence-backed supplement formulations in minutes. Clinical dose ranges from published RCTs, FDA compliance scoring, and one-click manufacturer handoff.",
     url: siteUrl,
     siteName: "FormLayer",
     images: [
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FormLayer — AI Supplement Formulation Platform",
     description:
-      "Evidence-backed supplement formulations in minutes. RAG-powered ingredient research, FDA compliance checking, and manufacturer connections.",
+      "Evidence-backed supplement formulations in minutes. Clinical dose ranges from published RCTs, FDA compliance scoring, and one-click manufacturer handoff.",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -72,7 +72,7 @@ const jsonLd = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
-    "AI-powered nutraceutical supplement formulation platform. RAG-powered ingredient research, FDA compliance checking, and manufacturer connections.",
+    "AI-powered nutraceutical supplement formulation platform. Clinical dose ranges from published RCTs, FDA compliance scoring, and one-click manufacturer handoff.",
   url: siteUrl,
   offers: [
     {
