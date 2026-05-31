@@ -61,6 +61,11 @@ export const formulationIngredientSchema = z.object({
   dose: z.string().optional().default(""),
   unit: z.string().optional().default("mg"),
   notes: z.string().optional(),
+  // AI-enriched fields
+  evidence_grade: z.enum(["A", "B", "C"]).optional(),
+  clinical_dose_range: z.string().optional(),
+  dose_assessment: z.enum(["at_studied_dose", "below_studied_dose", "above_studied_dose"]).optional(),
+  rationale: z.string().optional(),
 });
 
 export type FormulationIngredient = z.infer<typeof formulationIngredientSchema>;

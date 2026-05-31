@@ -53,6 +53,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [formulations, setFormulations] = useState<Formulation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ total: 0, draft: 0, active: 0, compliant: 0, avgCompliance: null as number | null });
 
   useEffect(() => {
     async function load() {
@@ -60,25 +61,36 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       if (user) {
-        const { data } = await supabase
-          .from("formulations")
-          .select("id, name, status, product_type, ingredients, compliance_score, created_at, updated_at")
-          .eq("user_id", user.id)
-          .order("updated_at", { ascending: false })
-          .limit(8);
-        setFormulations(data ?? []);
+        // Parallel: recent 5 for display + all for stats
+        const [recentRes, allRes] = await Promise.all([
+          supabase
+            .from("formulations")
+            .select("id, name, status, product_type, ingredients, compliance_score, created_at, updated_at")
+            .eq("user_id", user.id)
+            .order("updated_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("formulations")
+            .select("status, compliance_score")
+            .eq("user_id", user.id),
+        ]);
+        setFormulations(recentRes.data ?? []);
+        const all = allRes.data ?? [];
+        const scored = all.filter(f => f.compliance_score != null);
+        setStats({
+          total:     all.length,
+          draft:     all.filter(f => f.status === "draft").length,
+          active:    all.filter(f => f.status === "in_progress" || f.status === "review").length,
+          compliant: all.filter(f => f.status === "compliant").length,
+          avgCompliance: scored.length > 0
+            ? Math.round(scored.reduce((s, f) => s + (f.compliance_score as number), 0) / scored.length)
+            : null,
+        });
       }
       setLoading(false);
     }
     load();
   }, []);
-
-  const stats = {
-    total:     formulations.length,
-    draft:     formulations.filter(f => f.status === "draft").length,
-    active:    formulations.filter(f => f.status === "in_progress" || f.status === "review").length,
-    compliant: formulations.filter(f => f.status === "compliant").length,
-  };
 
   const displayName =
     user?.user_metadata?.full_name ||
@@ -122,7 +134,7 @@ export default function DashboardPage() {
           { label: "Draft",        value: stats.draft,     sub: "pending review",       icon: Clock,        color: "text-zinc-400" },
           { label: "Active",       value: stats.active,    sub: "in development",       icon: FlaskConical, color: "text-brand"    },
           { label: "Compliant",    value: stats.compliant, sub: "cleared for label",    icon: ShieldCheck,  color: "text-emerald-500" },
-        ] as const).map(({ label, value, sub, icon: Icon, color }) => (
+        ]).map(({ label, value, sub, icon: Icon, color }) => (
           <div key={label} className="rounded-xl border border-black/[0.06] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-medium text-gray-400">{label}</p>

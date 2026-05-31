@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/hooks/auth-context";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SiteChrome, SiteFooter } from "@/components/shared/SiteChrome";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://formlayer.co";
 
@@ -128,9 +127,9 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <AuthProvider>
-            <Navbar />
+            <SiteChrome />
             <main className="flex-1">{children}</main>
-            <Footer />
+            <SiteFooter />
           </AuthProvider>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
