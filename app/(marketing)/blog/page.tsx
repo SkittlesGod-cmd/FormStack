@@ -1,46 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getAllPosts } from "@/lib/blog";
 
 export const metadata: Metadata = {
-  title: "Blog – FormLayer",
+  title: "Blog",
   description:
     "Clinical research, regulatory guidance, and product development for supplement brands.",
 };
 
 const CATEGORY_STYLES: Record<string, string> = {
-  Formulation: "bg-brand-50 text-brand-600 border-brand-100",
-  Compliance:  "bg-amber-50 text-amber-700 border-amber-100",
-  Industry:    "bg-gray-50 text-gray-600 border-gray-200",
+  Formulation: "bg-brand/[0.08] text-brand border-brand/20",
+  Compliance: "bg-amber-50 text-amber-700 border-amber-200",
+  Industry: "bg-gray-50 text-gray-600 border-gray-200",
 };
 
-const POSTS = [
-  {
-    date: "May 28, 2026",
-    category: "Formulation",
-    title: "Evidence Grading in Supplement Formulation: Why A, B, C Ratings Matter",
-    excerpt:
-      "Not all clinical evidence is equal. We break down how to use evidence grades — from robust RCTs to emerging preclinical data — to make better ingredient decisions and communicate confidence to manufacturers.",
-    slug: "#",
-  },
-  {
-    date: "May 22, 2026",
-    category: "Compliance",
-    title: "DSHEA Structure/Function Claims: What You Can and Can't Say",
-    excerpt:
-      "The line between a compliant structure/function claim and an illegal disease claim is razor thin. Here's a practical guide to writing label copy that passes FDA scrutiny without sacrificing marketing impact.",
-    slug: "#",
-  },
-  {
-    date: "May 15, 2026",
-    category: "Industry",
-    title: "From Concept to Contract Manufacturer: The Supplement Product Development Timeline",
-    excerpt:
-      "Most founders underestimate the gap between 'we have a formula' and 'the product is on shelf.' This is a realistic timeline from first formulation draft to production run, with the common delays at each stage.",
-    slug: "#",
-  },
-];
-
 export default function BlogPage() {
+  const posts = getAllPosts();
+
   return (
     <div className="mx-auto max-w-[720px] px-5 py-16 md:py-24">
       <div className="mb-14">
@@ -57,31 +33,39 @@ export default function BlogPage() {
 
       {/* Posts */}
       <div className="space-y-6">
-        {POSTS.map((post) => (
-          <Link
-            key={post.title}
-            href={post.slug}
-            className="group block rounded-2xl border border-black/[0.06] bg-white p-7 shadow-[0_1px_4px_rgba(0,0,0,0.04)] transition hover:border-black/[0.12] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
-          >
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <span className="text-[12px] text-gray-400">{post.date}</span>
-              <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-                  CATEGORY_STYLES[post.category] ?? "bg-gray-50 text-gray-600 border-gray-200"
-                }`}
-              >
-                {post.category}
-              </span>
-            </div>
-            <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-gray-950 group-hover:text-brand transition-colors">
-              {post.title}
-            </h2>
-            <p className="mt-3 text-[13px] leading-relaxed text-gray-600">{post.excerpt}</p>
-            <p className="mt-5 text-[13px] font-medium text-brand">
-              Read more &rarr;
-            </p>
-          </Link>
-        ))}
+        {posts.map((post) => {
+          const formattedDate = new Date(post.date).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          });
+          return (
+            <Link
+              key={post.slug}
+              href={`/blog/${post.slug}`}
+              className="group block rounded-2xl border border-black/[0.06] bg-white p-7 shadow-[0_1px_4px_rgba(0,0,0,0.04)] transition hover:border-black/[0.12] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+            >
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <span className="text-[12px] text-gray-400">{formattedDate}</span>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                    CATEGORY_STYLES[post.category] ?? "bg-gray-50 text-gray-600 border-gray-200"
+                  }`}
+                >
+                  {post.category}
+                </span>
+                <span className="text-[12px] text-gray-400">{post.readingTime} min read</span>
+              </div>
+              <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-gray-950 group-hover:text-brand transition-colors">
+                {post.title}
+              </h2>
+              <p className="mt-3 text-[13px] leading-relaxed text-gray-600">{post.excerpt}</p>
+              <p className="mt-5 text-[13px] font-medium text-brand">
+                Read more &rarr;
+              </p>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Subscribe section */}
@@ -106,12 +90,6 @@ export default function BlogPage() {
             Subscribe
           </a>
         </div>
-      </div>
-
-      <div className="mt-12 border-t border-black/[0.06] pt-8">
-        <p className="text-[13px] text-gray-400">
-          © 2026 FormLayer, Inc. All rights reserved.
-        </p>
       </div>
     </div>
   );
