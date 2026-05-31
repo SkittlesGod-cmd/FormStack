@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPosts } from "@/lib/blog";
+import { SubscribeForm } from "@/components/shared/SubscribeForm";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -76,19 +77,8 @@ export default function BlogPage() {
         <p className="mt-2 text-[13px] leading-relaxed text-gray-600">
           New articles on clinical research, compliance, and supplement product development.
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <input
-            type="email"
-            placeholder="your@email.com"
-            aria-label="Email address"
-            className="flex-1 min-w-[200px] rounded-full border border-black/[0.10] bg-white px-5 py-2.5 text-[13px] text-gray-950 placeholder-gray-400 outline-none focus:border-brand focus:ring-2 focus:ring-brand/10"
-          />
-          <a
-            href="mailto:support@formlayer.co?subject=Subscribe"
-            className="inline-flex items-center rounded-full bg-gray-950 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
-            Subscribe
-          </a>
+        <div className="mt-5">
+          <SubscribeForm />
         </div>
       </div>
     </div>

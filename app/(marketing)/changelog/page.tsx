@@ -13,6 +13,21 @@ const BADGE_STYLES: Record<string, string> = {
 
 const ENTRIES = [
   {
+    version: "v0.5",
+    date: "May 31, 2026",
+    title: "Blog, features page, and marketing improvements",
+    badge: "New",
+    items: [
+      "MDX-based blog system — file-based posts with reading time, category tags, and individual post pages",
+      "Features page rewrite — 6 detailed sections with plan tags, bullet details, and evidence-backed copy",
+      "Pricing page rewrite — richer per-plan descriptions, comparison table, and trust signals",
+      "Landing page copy overhaul — removed placeholder language, added 'Who it's for' profiles and social proof",
+      "Cookie consent now includes a 'Decline non-essential' option with ARIA accessibility attributes",
+      "Sign-in: OAuth retry reset after 10s timeout; magic link resend with 30s cooldown",
+      "Dashboard: disabled state for compliance quick action when no formulations exist",
+    ],
+  },
+  {
     version: "v0.4",
     date: "May 30, 2026",
     title: "Evidence grades & clinical citations",

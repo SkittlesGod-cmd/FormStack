@@ -13,6 +13,7 @@ import { createBrowserClient } from "@/utils/supabase/client";
 const NAV_LINKS = [
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Blog", href: "/blog" },
   { label: "For agencies", href: "/for-agencies" },
 ];
 
