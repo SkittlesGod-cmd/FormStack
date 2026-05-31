@@ -330,7 +330,9 @@ Required shape (all fields required):
       "severity": "high",
       "ingredient": "Ingredient name or null",
       "issue": "Short title of the issue",
-      "detail": "Specific explanation with regulatory basis (DSHEA, National Academies UL, 21 CFR, etc.)"
+      "detail": "Specific explanation with regulatory basis (DSHEA, National Academies UL, 21 CFR, etc.)",
+      "cfr_citation": "e.g. '21 CFR 101.93(a)' or 'DSHEA §403(r)(6)' or 'National Academies UL' — the exact regulatory reference",
+      "fix": "Specific one-sentence actionable fix — e.g. 'Replace with: Supports healthy sleep onset' or 'Reduce dose to ≤10mg per National Academies UL'"
     }
   ],
   "compliant_claims": [
@@ -354,13 +356,16 @@ Scoring:
 - 0–24: Severe — cannot launch as-is under current regulatory framework
 
 Evaluate ALL of the following:
-1. Disease claim violations in name, description, expected_outcomes, or compliant_claims fields
-2. Ingredient doses vs National Academies Tolerable Upper Intake Levels (ULs)
-3. Regulatory category mismatch (e.g. topical claiming drug effects)
-4. New Dietary Ingredient (NDI) status for post-1994 ingredients
+1. Disease claim violations in name, description, expected_outcomes, or compliant_claims fields → cite 21 CFR 101.93 / DSHEA §403(r)(6)
+2. Ingredient doses vs National Academies Tolerable Upper Intake Levels (ULs) → cite specific UL source
+3. Regulatory category mismatch (e.g. topical claiming drug effects) → cite 21 USC 321(g)
+4. New Dietary Ingredient (NDI) status for post-1994 ingredients → cite 21 CFR 190.6
 5. Dose appropriateness vs published human clinical trials (flag underdosed AND overdosed)
 6. Ingredient form appropriateness (e.g. oxide vs chelated minerals)
-7. Missing required label elements (e.g. "These statements have not been evaluated by the FDA...")
+7. Missing required label elements → cite 21 CFR 101.36 for supplement facts, 21 CFR 101.93(b) for disclaimer
+
+For every issue, the cfr_citation field MUST contain the exact regulatory citation (e.g. "21 CFR 101.93(a)", "DSHEA §403(r)(6)", "21 CFR 190.6", "National Academies UL — Vitamin D 4,000 IU/day").
+For every issue, the fix field MUST contain a concrete actionable fix the formulator can apply immediately.
 
 Return ONLY the JSON object. Start with { and end with }.`;
 

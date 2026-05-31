@@ -55,17 +55,60 @@ export const PRODUCT_TYPE_SERVING: Record<ProductType, string> = {
   strip:    "e.g. 1 strip",
 };
 
+// Capsule fill capacities in mg (typical fill weight)
+export const CAPSULE_FILL_CAPACITY_MG: Record<string, number> = {
+  "#000 (1.37 mL)": 1000,
+  "#00 (0.91 mL)":  735,
+  "#0 (0.68 mL)":   500,
+  "#1 (0.50 mL)":   400,
+  "#2 (0.37 mL)":   300,
+  "#3 (0.30 mL)":   200,
+  "#4 (0.21 mL)":   150,
+};
+
+export const TARGET_POPULATIONS = [
+  "General healthy adults",
+  "Athletes & active individuals",
+  "Women 18–35",
+  "Women 35–55",
+  "Men 18–35",
+  "Men 35–55",
+  "Adults 55+",
+  "Elderly (65+)",
+  "Pregnant / nursing women",
+  "Vegans / vegetarians",
+] as const;
+
+export type TargetPopulation = (typeof TARGET_POPULATIONS)[number];
+
+export const formulationExcipientSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  function: z.string().optional(), // e.g. "flow agent", "filler", "lubricant"
+  amount_pct: z.number().min(0).max(100).optional(), // % of total fill weight
+});
+
+export type FormulationExcipient = z.infer<typeof formulationExcipientSchema>;
+
 export const formulationIngredientSchema = z.object({
   id: z.string().min(1, "Ingredient id is required"),
   name: z.string().min(1, "Ingredient name is required"),
   dose: z.string().optional().default(""),
   unit: z.string().optional().default("mg"),
   notes: z.string().optional(),
-  // AI-enriched fields
+  // AI-enriched evidence fields
   evidence_grade: z.enum(["A", "B", "C"]).optional(),
   clinical_dose_range: z.string().optional(),
   dose_assessment: z.enum(["at_studied_dose", "below_studied_dose", "above_studied_dose"]).optional(),
   rationale: z.string().optional(),
+  // Bioavailability form
+  preferred_form: z.string().optional(),      // e.g. "Magnesium Glycinate"
+  form_recommendation: z.string().optional(), // e.g. "Consider glycinate for 4× better absorption"
+  // PubMed citations
+  pubmed_ids: z.array(z.string()).optional(), // real PMIDs
+  pubmed_titles: z.array(z.string()).optional(),
+  // Cost data
+  cost_per_kg_usd: z.number().optional(),     // estimated bulk price
 });
 
 export type FormulationIngredient = z.infer<typeof formulationIngredientSchema>;
@@ -88,6 +131,9 @@ const baseFormulationFields = {
     .nullable(),
   notes: z.string().max(4000).optional().nullable(),
   compliance_score: z.number().int().min(0).max(100).optional().nullable(),
+  // New fields
+  target_population: z.string().max(100).optional().nullable(),
+  excipients: z.array(formulationExcipientSchema).optional().nullable(),
 };
 
 export const createFormulationSchema = z.object(baseFormulationFields);
@@ -112,6 +158,8 @@ export interface Formulation {
   capsules_per_serving: number | null;
   notes: string | null;
   compliance_score: number | null;
+  target_population: string | null;
+  excipients: FormulationExcipient[] | null;
   created_at: string;
   updated_at: string;
 }

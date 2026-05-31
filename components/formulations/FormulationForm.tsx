@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GripVertical, Plus, Trash2, Sparkles, Loader2, X, Info } from "lucide-react";
+import { GripVertical, Plus, Trash2, Sparkles, Loader2, X, Info, Check } from "lucide-react";
 
 import {
   DndContext,
@@ -32,13 +32,16 @@ import {
   STATUS_LABELS,
   PRODUCT_TYPE_LABELS,
   PRODUCT_TYPE_SERVING,
+  TARGET_POPULATIONS,
   type CreateFormulationInput,
+  type FormulationExcipient,
   type FormulationIngredient,
   type ProductType,
 } from "@/lib/formulations/types";
 
 export type FormulationFormValues = CreateFormulationInput & {
   ingredients: FormulationIngredient[];
+  excipients?: FormulationExcipient[];
 };
 
 interface Props {
@@ -160,6 +163,102 @@ function SortableIngredientRow({ fieldId, idx, register, control, onRemove }: So
   );
 }
 
+const COMMON_EXCIPIENTS = [
+  { name: "Magnesium Stearate", function: "lubricant" },
+  { name: "Silicon Dioxide (Silica)", function: "flow agent" },
+  { name: "Microcrystalline Cellulose (MCC)", function: "filler/binder" },
+  { name: "Hydroxypropyl Methylcellulose (HPMC)", function: "capsule shell" },
+  { name: "Stearic Acid", function: "lubricant" },
+  { name: "Rice Flour", function: "filler" },
+  { name: "Dicalcium Phosphate", function: "filler/binder" },
+];
+
+function ExcipientsSection({
+  register,
+  watch,
+  setValue,
+}: {
+  register: any;
+  watch: any;
+  setValue: any;
+}) {
+  const excipients: FormulationExcipient[] = watch("excipients") ?? [];
+
+  function add(name: string, fn: string) {
+    if (excipients.some(e => e.name === name)) return;
+    setValue("excipients", [
+      ...excipients,
+      { id: crypto.randomUUID(), name, function: fn, amount_pct: undefined },
+    ]);
+  }
+
+  function remove(id: string) {
+    setValue("excipients", excipients.filter(e => e.id !== id));
+  }
+
+  return (
+    <section className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      <div className="border-b border-black/[0.05] px-5 py-3.5">
+        <h2 className="text-[13px] font-semibold text-gray-900">Excipients & inactive ingredients</h2>
+        <p className="mt-0.5 text-[11px] text-gray-400">Flow agents, fillers, lubricants — required on the Supplement Facts panel. Affects fill weight calculation.</p>
+      </div>
+      <div className="p-5 space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {COMMON_EXCIPIENTS.map(e => {
+            const added = excipients.some(x => x.name === e.name);
+            return (
+              <button
+                type="button"
+                key={e.name}
+                onClick={() => added ? remove(excipients.find(x => x.name === e.name)!.id) : add(e.name, e.function)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[11px] font-medium transition",
+                  added
+                    ? "border-gray-950 bg-gray-950 text-white"
+                    : "border-black/[0.08] bg-white text-gray-500 hover:border-black/20 hover:text-gray-900"
+                )}
+              >
+                {added && <Check className="mr-1 inline size-3" />}
+                {e.name}
+                <span className="ml-1 text-[9px] opacity-60">({e.function})</span>
+              </button>
+            );
+          })}
+        </div>
+        {excipients.length > 0 && (
+          <ul className="space-y-2">
+            {excipients.map((exc, idx) => (
+              <li key={exc.id} className="flex items-center gap-2 rounded-lg border border-black/[0.06] bg-gray-50/50 px-3 py-2">
+                <span className="flex-1 text-[12px] text-gray-900">{exc.name}</span>
+                <span className="text-[11px] text-gray-400">{exc.function}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  placeholder="%"
+                  value={exc.amount_pct ?? ""}
+                  onChange={e => {
+                    const updated = [...excipients];
+                    updated[idx] = { ...updated[idx], amount_pct: e.target.value ? Number(e.target.value) : undefined };
+                    setValue("excipients", updated);
+                  }}
+                  className="w-16 rounded-md border border-black/[0.08] bg-white px-2 py-1 text-[12px] text-center outline-none focus:border-brand"
+                />
+                <span className="text-[11px] text-gray-400">% of fill</span>
+                <button type="button" onClick={() => remove(exc.id)} className="text-gray-300 hover:text-red-500 transition">
+                  <X className="size-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-[11px] text-gray-400">Total fill = actives + excipients. Typical excipient load: 2–5% lubricant + 5–20% filler.</p>
+      </div>
+    </section>
+  );
+}
+
 export function FormulationForm({ defaultValues, submitLabel, showStatus = false, onSubmit, onCancel }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -167,12 +266,13 @@ export function FormulationForm({ defaultValues, submitLabel, showStatus = false
   const [suggesting, setSuggesting] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
 
-  const { register, handleSubmit, control, watch, formState: { errors }, setValue, getValues } = useForm<FormulationFormValues>({
+  const { register, handleSubmit, control, watch, formState: { errors }, setValue } = useForm<FormulationFormValues>({
     resolver: zodResolver(createFormulationSchema) as any,
     defaultValues: {
       name: "", description: "", product_type: null, status: "draft",
       target_dose: "", serving_size: "", capsule_size: "",
       capsules_per_serving: null, notes: "", ingredients: [],
+      target_population: "", excipients: [],
       ...defaultValues,
     },
   });
@@ -278,6 +378,17 @@ export function FormulationForm({ defaultValues, submitLabel, showStatus = false
               className="w-full rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-[13px] outline-none transition placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/15 resize-none"
             />
             <FieldHint>Keep to structure/function claims only. Avoid disease claims (e.g. "treats", "cures").</FieldHint>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="target_population" className={labelClass}>Target population</Label>
+            <select id="target_population" {...register("target_population")} className={fieldClass}>
+              <option value="">— Select target population —</option>
+              {TARGET_POPULATIONS.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            <FieldHint>Affects AI dose recommendations — clinical doses vary by population (age, sex, health status).</FieldHint>
           </div>
 
           {showStatus && (
@@ -528,6 +639,9 @@ export function FormulationForm({ defaultValues, submitLabel, showStatus = false
           />
         </div>
       </section>
+
+      {/* Excipients */}
+      <ExcipientsSection register={register} watch={watch} setValue={setValue} />
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-2.5">
