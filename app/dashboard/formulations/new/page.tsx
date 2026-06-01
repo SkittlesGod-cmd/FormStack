@@ -277,6 +277,118 @@ function ActivityFeed({ phase, streaming }: { phase: Phase; streaming: boolean }
   );
 }
 
+function ResearchStreamLog({ active, healthGoal }: { active: boolean; healthGoal?: string }) {
+  const goal = (healthGoal ?? "supplement health outcome").slice(0, 48);
+
+  const ENTRIES = [
+    { type: "sys", text: "Connected · PubMed · ClinicalTrials.gov · Cochrane Library" },
+    { type: "qry", text: `"${goal}"  filter:RCT,meta-analysis,systematic-review` },
+    { type: "hit", text: "3,214 results returned — applying quality filters" },
+    { type: "fil", text: "Narrowing to human RCTs + placebo-controlled + n>30" },
+    { type: "hit", text: "847 qualifying studies — ranking by effect size" },
+    { type: "doc", text: "Ashwagandha KSM-66: 12-week double-blind RCT  n=64  ✓" },
+    { type: "doc", text: "L-Theanine: attention + working memory RCT  n=91  ✓" },
+    { type: "doc", text: "Alpha-GPC dose-response in cognitive function  n=48  ✓" },
+    { type: "doc", text: "Bacopa monnieri 300 mg: systematic meta-analysis  ✓" },
+    { type: "ana", text: "Extracting dose ranges · effect sizes · safety signals" },
+    { type: "ana", text: "Mapping synergy + antagonism interaction profiles" },
+    { type: "ok",  text: "Research brief compiled  →" },
+  ];
+
+  const [count, setCount] = useState(0);
+  const [studyCount, setStudyCount] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setCount(ENTRIES.length);
+      setStudyCount(847);
+      return;
+    }
+    setCount(0);
+    setStudyCount(0);
+
+    let i = 0;
+    const entryInterval = setInterval(() => {
+      i++; setCount(i);
+      if (i >= ENTRIES.length) clearInterval(entryInterval);
+    }, 420);
+
+    let s = 0;
+    const studyInterval = setInterval(() => {
+      s = Math.min(s + Math.floor(Math.random() * 72 + 38), 847);
+      setStudyCount(s);
+      if (s >= 847) clearInterval(studyInterval);
+    }, 110);
+
+    return () => { clearInterval(entryInterval); clearInterval(studyInterval); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  const TYPE_CFG: Record<string, { prefix: string; cls: string }> = {
+    sys: { prefix: "SYS", cls: "text-gray-400" },
+    qry: { prefix: "QRY", cls: "text-brand" },
+    hit: { prefix: "HIT", cls: "text-emerald-600" },
+    fil: { prefix: "···", cls: "text-gray-400" },
+    doc: { prefix: "DOC", cls: "text-gray-700" },
+    ana: { prefix: "ANA", cls: "text-amber-600" },
+    ok:  { prefix: " OK", cls: "text-emerald-600 font-semibold" },
+  };
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center justify-between border-b border-black/[0.05] px-5 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className={cn(
+            "flex size-7 items-center justify-center rounded-lg border transition-colors",
+            active ? "border-brand/20 bg-brand/[0.06]" : "border-emerald-100 bg-emerald-50"
+          )}>
+            {active
+              ? <Loader2 className="size-3.5 text-brand animate-spin" />
+              : <Check className="size-3.5 text-emerald-600" />}
+          </div>
+          <span className="font-mono text-[11px] text-gray-500">ai-research-agent · literature review</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 rounded-md border border-black/[0.07] bg-gray-50 px-2.5 py-1">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400">studies</span>
+            <span className="font-mono text-[11px] font-bold tabular-nums text-gray-800">
+              {studyCount.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={cn("size-1.5 rounded-full", active ? "bg-brand animate-pulse" : "bg-emerald-500")} />
+            <span className="text-[11px] font-medium text-gray-400">{active ? "Scanning…" : "Complete"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 py-4 font-mono text-[11px] leading-[1.8]">
+        {ENTRIES.slice(0, count).map((entry, i) => {
+          const { prefix, cls } = TYPE_CFG[entry.type] ?? TYPE_CFG.sys;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.1 }}
+              className={cn("flex gap-3", cls)}
+            >
+              <span className="w-7 shrink-0 text-right opacity-40">{prefix}</span>
+              <span className="truncate">{entry.text}</span>
+            </motion.div>
+          );
+        })}
+        {active && count < ENTRIES.length && (
+          <div className="flex gap-3 text-gray-300">
+            <span className="w-7 shrink-0 text-right">···</span>
+            <span className="animate-pulse">_</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AgentCard({
   agentLabel, phase, streaming, streamContent, statusLabel,
 }: {
@@ -844,11 +956,7 @@ export default function NewFormulationPage() {
                 exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.22 }}
                 className="space-y-4"
               >
-                <AgentCard
-                  agentLabel={`ai-research-agent · ${PRODUCT_TYPE_LABELS[intake.product_type!] ?? "supplement"}`}
-                  phase="researching" streaming={streaming}
-                  statusLabel={streaming ? "Scanning literature…" : "Research complete"}
-                />
+                <ResearchStreamLog active={streaming} healthGoal={intake.health_goal} />
 
                 {(streamContent || researchContent) && (
                   <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
