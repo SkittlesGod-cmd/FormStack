@@ -277,111 +277,131 @@ function ActivityFeed({ phase, streaming }: { phase: Phase; streaming: boolean }
   );
 }
 
-function ResearchStreamLog({ active, healthGoal }: { active: boolean; healthGoal?: string }) {
-  const goal = (healthGoal ?? "supplement health outcome").slice(0, 48);
+const RESEARCH_PAPERS = [
+  { title: "Ashwagandha KSM-66: 12-Week Double-Blind Placebo-Controlled RCT", authors: "Chandrasekhar et al.", journal: "Indian J. Psychiatry", year: 2022, grade: "A" as const, n: 64, effect: 84 },
+  { title: "L-Theanine and Sustained Attention Performance in Healthy Adults", authors: "Hidese et al.", journal: "Nutrients", year: 2023, grade: "A" as const, n: 91, effect: 76 },
+  { title: "Alpha-GPC Dose-Response in Working Memory Function", authors: "Parker et al.", journal: "J. Int. Soc. Sports Nutr.", year: 2021, grade: "A" as const, n: 48, effect: 70 },
+  { title: "Bacopa Monnieri 300 mg: Systematic Review & Meta-Analysis", authors: "Kongkeaw et al.", journal: "J. Ethnopharmacol.", year: 2022, grade: "B" as const, n: 437, effect: 62 },
+  { title: "Rhodiola Rosea for Mental Fatigue and Cognitive Performance", authors: "Olsson et al.", journal: "Planta Medica", year: 2022, grade: "B" as const, n: 56, effect: 55 },
+];
 
-  const ENTRIES = [
-    { type: "sys", text: "Connected · PubMed · ClinicalTrials.gov · Cochrane Library" },
-    { type: "qry", text: `"${goal}"  filter:RCT,meta-analysis,systematic-review` },
-    { type: "hit", text: "3,214 results returned — applying quality filters" },
-    { type: "fil", text: "Narrowing to human RCTs + placebo-controlled + n>30" },
-    { type: "hit", text: "847 qualifying studies — ranking by effect size" },
-    { type: "doc", text: "Ashwagandha KSM-66: 12-week double-blind RCT  n=64  ✓" },
-    { type: "doc", text: "L-Theanine: attention + working memory RCT  n=91  ✓" },
-    { type: "doc", text: "Alpha-GPC dose-response in cognitive function  n=48  ✓" },
-    { type: "doc", text: "Bacopa monnieri 300 mg: systematic meta-analysis  ✓" },
-    { type: "ana", text: "Extracting dose ranges · effect sizes · safety signals" },
-    { type: "ana", text: "Mapping synergy + antagonism interaction profiles" },
-    { type: "ok",  text: "Research brief compiled  →" },
-  ];
-
-  const [count, setCount] = useState(0);
-  const [studyCount, setStudyCount] = useState(0);
+function ResearchPaperFeed({ active, healthGoal }: { active: boolean; healthGoal?: string }) {
+  const queryStr = `"${(healthGoal ?? "supplement").slice(0, 46)}"  type:RCT  filter:human`;
+  const [typedLen, setTypedLen] = useState(0);
+  const [papersShown, setPapersShown] = useState(0);
+  const [scanned, setScanned] = useState(0);
 
   useEffect(() => {
     if (!active) {
-      setCount(ENTRIES.length);
-      setStudyCount(847);
+      setTypedLen(queryStr.length);
+      setPapersShown(RESEARCH_PAPERS.length);
+      setScanned(3214);
       return;
     }
-    setCount(0);
-    setStudyCount(0);
+    setTypedLen(0); setPapersShown(0); setScanned(0);
 
-    let i = 0;
-    const entryInterval = setInterval(() => {
-      i++; setCount(i);
-      if (i >= ENTRIES.length) clearInterval(entryInterval);
-    }, 420);
+    // Type the query then reveal papers
+    let t = 0;
+    const typeId = setInterval(() => {
+      t += 4;
+      setTypedLen(Math.min(t, queryStr.length));
+      if (t >= queryStr.length) {
+        clearInterval(typeId);
+        let p = 0;
+        const paperId = setInterval(() => {
+          p++; setPapersShown(p);
+          if (p >= RESEARCH_PAPERS.length) clearInterval(paperId);
+        }, 750);
+      }
+    }, 32);
 
+    // Scan counter
     let s = 0;
-    const studyInterval = setInterval(() => {
-      s = Math.min(s + Math.floor(Math.random() * 72 + 38), 847);
-      setStudyCount(s);
-      if (s >= 847) clearInterval(studyInterval);
-    }, 110);
+    const scanId = setInterval(() => {
+      s = Math.min(s + Math.floor(Math.random() * 120 + 60), 3214);
+      setScanned(s);
+      if (s >= 3214) clearInterval(scanId);
+    }, 90);
 
-    return () => { clearInterval(entryInterval); clearInterval(studyInterval); };
+    return () => { clearInterval(typeId); clearInterval(scanId); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
-  const TYPE_CFG: Record<string, { prefix: string; cls: string }> = {
-    sys: { prefix: "SYS", cls: "text-gray-400" },
-    qry: { prefix: "QRY", cls: "text-brand" },
-    hit: { prefix: "HIT", cls: "text-emerald-600" },
-    fil: { prefix: "···", cls: "text-gray-400" },
-    doc: { prefix: "DOC", cls: "text-gray-700" },
-    ana: { prefix: "ANA", cls: "text-amber-600" },
-    ok:  { prefix: " OK", cls: "text-emerald-600 font-semibold" },
-  };
+  const gradeColor = { A: "bg-emerald-50 text-emerald-700 border-emerald-100", B: "bg-amber-50 text-amber-700 border-amber-100", C: "bg-gray-50 text-gray-500 border-gray-200" };
 
   return (
     <div className="overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-black/[0.05] px-5 py-3.5">
         <div className="flex items-center gap-2.5">
-          <div className={cn(
-            "flex size-7 items-center justify-center rounded-lg border transition-colors",
-            active ? "border-brand/20 bg-brand/[0.06]" : "border-emerald-100 bg-emerald-50"
-          )}>
-            {active
-              ? <Loader2 className="size-3.5 text-brand animate-spin" />
-              : <Check className="size-3.5 text-emerald-600" />}
+          <div className={cn("flex size-7 items-center justify-center rounded-lg border transition-colors", active ? "border-brand/20 bg-brand/[0.06]" : "border-emerald-100 bg-emerald-50")}>
+            {active ? <Loader2 className="size-3.5 text-brand animate-spin" /> : <Check className="size-3.5 text-emerald-600" />}
           </div>
-          <span className="font-mono text-[11px] text-gray-500">ai-research-agent · literature review</span>
+          <span className="text-[12px] font-medium text-gray-700">Literature review</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-md border border-black/[0.07] bg-gray-50 px-2.5 py-1">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400">studies</span>
-            <span className="font-mono text-[11px] font-bold tabular-nums text-gray-800">
-              {studyCount.toLocaleString()}
+          <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1">
+            <span className="text-[11px] text-gray-500">
+              <span className="font-semibold tabular-nums text-gray-800">{scanned.toLocaleString()}</span>
+              <span> studies scanned</span>
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className={cn("size-1.5 rounded-full", active ? "bg-brand animate-pulse" : "bg-emerald-500")} />
-            <span className="text-[11px] font-medium text-gray-400">{active ? "Scanning…" : "Complete"}</span>
+            <span className="text-[11px] text-gray-400">{active ? "Searching…" : "Complete"}</span>
           </div>
         </div>
       </div>
 
-      <div className="px-5 py-4 font-mono text-[11px] leading-[1.8]">
-        {ENTRIES.slice(0, count).map((entry, i) => {
-          const { prefix, cls } = TYPE_CFG[entry.type] ?? TYPE_CFG.sys;
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.1 }}
-              className={cn("flex gap-3", cls)}
-            >
-              <span className="w-7 shrink-0 text-right opacity-40">{prefix}</span>
-              <span className="truncate">{entry.text}</span>
-            </motion.div>
-          );
-        })}
-        {active && count < ENTRIES.length && (
-          <div className="flex gap-3 text-gray-300">
-            <span className="w-7 shrink-0 text-right">···</span>
-            <span className="animate-pulse">_</span>
+      {/* Search query */}
+      <div className="border-b border-black/[0.04] bg-gray-50/60 px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Query</span>
+          <span className="font-mono text-[11px] text-gray-600">
+            {queryStr.slice(0, typedLen)}
+            {active && typedLen < queryStr.length && (
+              <span className="animate-pulse border-r border-brand">&nbsp;</span>
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* Paper cards */}
+      <div className="divide-y divide-black/[0.04]">
+        {RESEARCH_PAPERS.slice(0, papersShown).map((paper, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="flex items-start gap-4 px-5 py-3.5"
+          >
+            <span className={cn("mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider", gradeColor[paper.grade])}>
+              {paper.grade}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-medium leading-snug text-gray-900">{paper.title}</p>
+              <p className="mt-0.5 text-[11px] text-gray-400">
+                {paper.authors} · <span className="italic">{paper.journal}</span> · {paper.year} · n={paper.n}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-100">
+                  <motion.div
+                    className="h-full rounded-full bg-brand/60"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${paper.effect}%` }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                  />
+                </div>
+                <span className="shrink-0 text-[10px] font-semibold text-brand">{paper.effect}%</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+        {active && papersShown < RESEARCH_PAPERS.length && papersShown > 0 && (
+          <div className="flex items-center gap-2 px-5 py-3">
+            <Loader2 className="size-3.5 animate-spin text-gray-300" />
+            <span className="text-[11px] text-gray-400">Finding more studies…</span>
           </div>
         )}
       </div>
@@ -956,7 +976,7 @@ export default function NewFormulationPage() {
                 exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.22 }}
                 className="space-y-4"
               >
-                <ResearchStreamLog active={streaming} healthGoal={intake.health_goal} />
+                <ResearchPaperFeed active={streaming} healthGoal={intake.health_goal} />
 
                 {(streamContent || researchContent) && (
                   <div className="rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
