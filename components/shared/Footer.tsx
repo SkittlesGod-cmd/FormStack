@@ -86,18 +86,38 @@ export function Footer() {
           ))}
         </div>
 
-        {/* Massive faint wordmark — Apple-style brand whisper */}
-        <div className="mt-20 select-none overflow-hidden">
-          <p
-            className="text-center text-[clamp(4rem,16vw,16rem)] font-semibold leading-[0.85] tracking-[-0.05em]"
-            style={{ background: "linear-gradient(180deg, rgba(17,17,17,0.06) 0%, rgba(17,17,17,0) 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}
+        {/* Brand whisper — SVG wordmark scales perfectly inside its container */}
+        <div className="relative mt-24 select-none">
+          <div className="pointer-events-none absolute inset-x-0 -top-12 mx-auto h-40 max-w-[1120px] bg-gradient-to-t from-[#c3b3ff]/25 via-[#a3b1ff]/15 to-transparent blur-3xl" />
+          <svg
+            viewBox="0 0 1000 160"
+            aria-hidden="true"
+            preserveAspectRatio="xMidYMid meet"
+            className="block h-auto w-full"
           >
-            FormLayer
-          </p>
+            <defs>
+              <linearGradient id="brand-whisper" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"  stopColor="rgba(91,110,225,0.18)" />
+                <stop offset="60%" stopColor="rgba(91,110,225,0.05)" />
+                <stop offset="100%" stopColor="rgba(91,110,225,0)" />
+              </linearGradient>
+            </defs>
+            <text
+              x="500" y="125"
+              textAnchor="middle"
+              fontFamily="var(--font-sans), system-ui, sans-serif"
+              fontSize="170"
+              fontWeight="600"
+              letterSpacing="-7"
+              fill="url(#brand-whisper)"
+            >
+              FormLayer
+            </text>
+          </svg>
         </div>
 
         {/* Bottom bar */}
-        <div className="-mt-8 flex flex-col gap-3 border-t border-black/[0.05] pt-6 text-[12px] text-gray-400 md:flex-row md:items-center md:justify-between">
+        <div className="mt-12 flex flex-col gap-3 border-t border-black/[0.05] pt-6 text-[12px] text-gray-400 md:flex-row md:items-center md:justify-between">
           <p>© 2026 FormLayer, Inc.</p>
           <div className="flex items-center gap-5">
             <Link href="/terms" className="transition-colors hover:text-gray-600">Terms</Link>

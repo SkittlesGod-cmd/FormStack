@@ -80,10 +80,12 @@ function Hero() {
       {/* Aurora backdrop */}
       <div className="aurora" />
       {/* Soft grid + grain */}
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.25]">
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.22]">
         <div className="subtle-grid absolute inset-0" />
       </div>
       <div className="grain pointer-events-none absolute inset-0 -z-10" />
+      {/* Floating particles — the "imaginary" layer */}
+      <Constellation />
 
       <div className="page-shell relative">
         {/* Eyebrow */}
@@ -98,21 +100,23 @@ function Hero() {
           Now in private beta · invite-only
         </motion.div>
 
-        {/* Headline */}
+        {/* Headline — three lines, controlled wrap, italic given breathing room */}
         <motion.h1
           style={{ opacity: headlineOpacity }}
           initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="display-2xl mx-auto mt-7 max-w-[18ch] text-center text-balance-tight"
+          className="display-2xl mx-auto mt-8 max-w-[1040px] px-4 text-center"
         >
-          <span className="text-gradient-ink">Supplement formulation,</span>{" "}
-          <span className="text-gradient-brand italic">rebuilt</span>{" "}
-          <span className="text-gradient-ink">on evidence.</span>
+          <span className="block text-gradient-ink">Supplement formulation,</span>
+          <span className="mt-1 block">
+            <span className="text-gradient-brand italic inline-block pr-[0.14em] pb-[0.08em] leading-[1.02]">rebuilt</span>{" "}
+            <span className="text-gradient-ink">on evidence.</span>
+          </span>
         </motion.h1>
 
         {/* Subhead */}
         <motion.p
           initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.12 }}
-          className="mx-auto mt-7 max-w-[44ch] text-center text-[17px] leading-[1.55] text-gray-500"
+          className="mx-auto mt-8 max-w-[52ch] text-balance-tight text-center text-[17px] leading-[1.55] text-gray-500"
         >
           One workspace for clinical research, FDA compliance, and the manufacturer brief —
           so a complete formulation takes an afternoon, not a quarter.
@@ -121,7 +125,7 @@ function Hero() {
         {/* CTAs */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          className="mt-10 flex flex-wrap items-center justify-center gap-3"
         >
           <Link
             href="/sign-up"
@@ -152,6 +156,35 @@ function Hero() {
         </motion.div>
       </div>
     </section>
+  );
+}
+
+// Drifting particles — the dreamy "imaginary" overlay
+function Constellation() {
+  const dots = [
+    { l: "8%",  t: "18%", s: 4, d: 0,    o: 0.55 },
+    { l: "16%", t: "62%", s: 2, d: 1.2,  o: 0.5  },
+    { l: "22%", t: "32%", s: 3, d: 0.6,  o: 0.4  },
+    { l: "78%", t: "20%", s: 3, d: 0.8,  o: 0.55 },
+    { l: "88%", t: "48%", s: 2, d: 1.6,  o: 0.5  },
+    { l: "92%", t: "70%", s: 4, d: 0.3,  o: 0.45 },
+    { l: "38%", t: "8%",  s: 2, d: 2.0,  o: 0.4  },
+    { l: "62%", t: "12%", s: 3, d: 1.4,  o: 0.5  },
+    { l: "50%", t: "85%", s: 2, d: 0.5,  o: 0.35 },
+  ];
+  return (
+    <div className="pointer-events-none absolute inset-0 -z-10">
+      {dots.map((p, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: p.o, y: [0, -10, 0] }}
+          transition={{ duration: 6 + p.d, repeat: Infinity, ease: "easeInOut", delay: p.d }}
+          style={{ left: p.l, top: p.t, width: p.s, height: p.s }}
+          className="absolute rounded-full bg-brand shadow-[0_0_8px_rgba(91,110,225,0.6)]"
+        />
+      ))}
+    </div>
   );
 }
 
@@ -715,7 +748,7 @@ function ForWhomSection() {
 
 function FinalCTA() {
   return (
-    <section className="relative isolate overflow-hidden pb-32 pt-12 md:pb-40">
+    <section className="relative isolate overflow-hidden pb-28 pt-12 md:pb-36">
       <div className="page-shell">
         <div className="relative overflow-hidden rounded-[36px] border border-black/[0.05] bg-white p-12 text-center shadow-[0_30px_80px_-30px_rgba(91,110,225,0.35)] md:p-20">
           <div className="aurora absolute inset-0 -z-10 opacity-70" />
