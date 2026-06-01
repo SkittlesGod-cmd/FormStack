@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Check, Copy, FlaskConical, LayoutGrid,
-  LayoutList, Loader2, Plus, Search, Sparkles, Zap,
+  LayoutList, Loader2, Plus, Search, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,16 +44,16 @@ function scoreColor(s: number | null): string {
   return "text-red-500";
 }
 
-const STATUS_GLOW: Record<FormulationStatus, string> = {
-  compliant:   "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]",
-  in_progress: "bg-brand shadow-[0_0_6px_rgba(91,110,225,0.6)]",
-  review:      "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]",
+const STATUS_DOT: Record<FormulationStatus, string> = {
+  compliant:   "bg-emerald-500",
+  in_progress: "bg-brand",
+  review:      "bg-amber-400",
   draft:       "bg-zinc-300",
 };
 
 const STATUS_TEXT_COLOR: Record<FormulationStatus, string> = {
   compliant:   "text-emerald-600",
-  in_progress: "text-brand",
+  in_progress: "text-gray-600",
   review:      "text-amber-600",
   draft:       "text-zinc-500",
 };
@@ -153,7 +153,7 @@ function FormulaCard({
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <div className="flex items-center gap-1.5">
-              <span className={cn("size-1.5 rounded-full", STATUS_GLOW[f.status])} />
+              <span className={cn("size-1.5 rounded-full", STATUS_DOT[f.status])} />
               <span className={cn("text-[11px] font-semibold", STATUS_TEXT_COLOR[f.status])}>
                 {STATUS_LABELS[f.status]}
               </span>
@@ -262,7 +262,7 @@ function FormulaRow({
       <div className="flex shrink-0 items-center gap-5">
         <span className="hidden font-mono text-[12px] text-gray-400 sm:block">{ings.length} ing.</span>
         <div className="flex items-center gap-1.5">
-          <span className={cn("size-1.5 shrink-0 rounded-full", STATUS_GLOW[f.status])} />
+          <span className={cn("size-1.5 shrink-0 rounded-full", STATUS_DOT[f.status])} />
           <span className={cn("hidden text-[12px] font-semibold sm:block", STATUS_TEXT_COLOR[f.status])}>
             {STATUS_LABELS[f.status]}
           </span>
@@ -300,8 +300,8 @@ function EmptyLibrary({ hasFilter, atLimit }: { hasFilter: boolean; atLimit: boo
         <div className="flex size-16 items-center justify-center rounded-2xl border border-black/[0.06] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <FlaskConical className="size-7 text-gray-300" />
         </div>
-        <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-brand shadow-[0_0_10px_rgba(91,110,225,0.4)]">
-          <Sparkles className="size-2.5 text-white" />
+        <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full border border-black/[0.06] bg-white shadow-sm">
+          <Plus className="size-2.5 text-gray-400" />
         </div>
       </div>
       <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-gray-950">
@@ -506,7 +506,7 @@ export default function FormulationsListPage() {
           <StatTile
             label="In pipeline"
             value={String(stats.inPipeline)}
-            accent={stats.inPipeline > 0 ? "text-brand" : undefined}
+            accent={undefined}
           />
           {stats.avg !== null ? (
             <StatTile
