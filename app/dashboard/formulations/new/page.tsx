@@ -815,9 +815,9 @@ export default function NewFormulationPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mt-8 text-center"
           >
-            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/[0.05] px-3 py-1">
-              <Sparkles className="size-3 text-brand" />
-              <span className="text-[11px] font-semibold tracking-wide text-brand">AI Formulation Studio</span>
+            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] bg-gray-100 px-3 py-1">
+              <Sparkles className="size-3 text-gray-500" />
+              <span className="text-[11px] font-semibold tracking-wide text-gray-600">AI Formulation Studio</span>
             </div>
             <h1 className="text-[32px] font-semibold tracking-[-0.035em] text-gray-950">
               Build a new formula
@@ -1043,7 +1043,7 @@ export default function NewFormulationPage() {
                     className="group w-full rounded-2xl bg-gray-950 px-8 py-5 text-center shadow-[0_8px_32px_rgba(0,0,0,0.14)] transition hover:bg-gray-800"
                   >
                     <div className="flex items-center justify-center gap-3">
-                      <Sparkles className="size-5 text-brand" />
+                      <Sparkles className="size-5 text-white/60" />
                       <span className="text-[15px] font-semibold text-white">Start AI research</span>
                       <ArrowRight className="size-5 text-white/60 transition group-hover:translate-x-0.5" />
                     </div>
@@ -1080,7 +1080,7 @@ export default function NewFormulationPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Research output</p>
                   <h3 className="mt-0.5 text-[14px] font-semibold text-gray-950">
                     Clinical evidence for{" "}
-                    <span className="text-brand">{(intake.health_goal ?? "").slice(0, 60)}</span>
+                    <span className="text-gray-950">{(intake.health_goal ?? "").slice(0, 60)}</span>
                   </h3>
                 </div>
                 <div className="px-6 py-5">
@@ -1139,7 +1139,7 @@ export default function NewFormulationPage() {
                 <div className="rounded-2xl border border-black/[0.06] bg-white px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
                         Formulation draft ready
                       </p>
                       <h2 className="mt-1.5 text-[20px] font-semibold tracking-[-0.02em] text-gray-950">
@@ -1152,8 +1152,8 @@ export default function NewFormulationPage() {
                     </div>
                   </div>
                   {parsedFormulation.expected_outcomes && (
-                    <div className="mt-4 rounded-xl border border-brand/10 bg-brand/[0.03] px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">Expected outcomes</p>
+                    <div className="mt-4 rounded-xl border border-black/[0.06] bg-gray-50 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Expected outcomes</p>
                       <p className="mt-1 text-[12px] leading-relaxed text-gray-700">{parsedFormulation.expected_outcomes}</p>
                     </div>
                   )}
@@ -1226,8 +1226,8 @@ export default function NewFormulationPage() {
               statusColor="amber"
             />
             <div className="flex items-center justify-center gap-4 rounded-2xl border border-black/[0.06] bg-white px-6 py-8 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-              <div className="flex size-12 items-center justify-center rounded-2xl border border-brand/20 bg-brand/[0.06]">
-                <ShieldCheck className="size-6 text-brand" />
+              <div className="flex size-12 items-center justify-center rounded-2xl border border-black/[0.08] bg-gray-100">
+                <ShieldCheck className="size-6 text-gray-600" />
               </div>
               <div>
                 <p className="text-[14px] font-semibold text-gray-950">Running compliance analysis</p>
@@ -1314,7 +1314,7 @@ export default function NewFormulationPage() {
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
                       AI formulation complete
                     </p>
                     <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.025em] text-gray-950">
