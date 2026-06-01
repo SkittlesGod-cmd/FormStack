@@ -2,28 +2,28 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Menu, X, LogOut, User } from "lucide-react";
-import { ButtonLink } from "@/components/button-link";
+import { useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 import { useScrolled } from "@/hooks/use-scrolled";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@/utils/supabase/client";
 
 const NAV_LINKS = [
-  { label: "Features", href: "/features" },
+  { label: "Product", href: "/features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Blog", href: "/blog" },
-  { label: "For agencies", href: "/for-agencies" },
+  { label: "Agencies", href: "/for-agencies" },
+  { label: "Journal", href: "/blog" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const scrolled = useScrolled(24);
+  const scrolled = useScrolled(8);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isLoading } = useAuth();
-  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const handleSignOut = async () => {
     const supabase = createBrowserClient();
@@ -33,33 +33,38 @@ export function Navbar() {
 
   const isAuthPage = pathname === "/sign-in" || pathname === "/sign-up";
   const isDashboard = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
-
   if (isDashboard) return null;
 
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3">
+    <header className="sticky top-0 z-50 px-4 pt-4">
       <div
         className={cn(
-          "mx-auto flex h-16 max-w-[1180px] items-center justify-between rounded-full border px-5 transition-all duration-300",
+          "mx-auto flex h-14 max-w-[1140px] items-center justify-between rounded-full px-2 pl-5 transition-all duration-500",
           scrolled
-            ? "border-black/8 bg-[rgba(255,255,255,0.82)] shadow-[0_16px_40px_rgba(17,17,17,0.08)] backdrop-blur-xl"
-            : "border-black/6 bg-[rgba(255,255,255,0.7)] backdrop-blur-xl"
+            ? "border border-black/[0.06] bg-white/85 shadow-[0_8px_28px_rgba(17,17,17,0.06)] backdrop-blur-2xl"
+            : "border border-transparent bg-white/40 backdrop-blur-xl"
         )}
       >
-        <Link href="/" className="shrink-0 text-[15px] font-semibold tracking-[-0.02em] text-gray-950">
+        {/* Logomark */}
+        <Link href="/" className="flex items-center gap-2.5 pr-6 text-[15px] font-medium tracking-[-0.022em] text-gray-950">
+          <span className="relative flex size-5 items-center justify-center">
+            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-[#a48bff] via-[#7c8dff] to-[#5b6ee1] opacity-90" />
+            <span className="absolute inset-[3px] rounded-full bg-white/85" />
+            <span className="relative size-1.5 rounded-full bg-gray-950" />
+          </span>
           FormLayer
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Center nav */}
+        <nav className="hidden items-center gap-1 md:flex">
           {NAV_LINKS.map(({ label, href }) => {
-            const isActive = pathname === href;
+            const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
             return (
               <Link
                 key={href}
                 href={href}
-                data-active={isActive || undefined}
                 className={cn(
-                  "nav-link text-sm transition-colors",
+                  "rounded-full px-3.5 py-1.5 text-[13.5px] font-medium tracking-[-0.005em] transition-colors",
                   isActive ? "text-gray-950" : "text-gray-500 hover:text-gray-950"
                 )}
               >
@@ -69,78 +74,44 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        {/* Right side */}
+        <div className="hidden items-center gap-1.5 md:flex">
           {!isLoading && (
-            <>
-              {user ? (
+            user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="rounded-full px-4 py-1.5 text-[13.5px] font-medium text-gray-500 transition-colors hover:text-gray-950"
+                >
+                  Open app
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded-full px-4 py-2 text-[13.5px] font-medium text-gray-400 transition-colors hover:text-gray-700"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              !isAuthPage && (
                 <>
-                  {/* Dashboard link for authenticated users */}
                   <Link
-                    href="/dashboard"
-                    className="text-sm text-gray-500 transition-colors hover:text-gray-950"
+                    href="/sign-in"
+                    className="rounded-full px-4 py-1.5 text-[13.5px] font-medium text-gray-500 transition-colors hover:text-gray-950"
                   >
-                    Dashboard
+                    Sign in
                   </Link>
-                  {/* User menu dropdown */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowUserMenu(!showUserMenu)}
-                      className="flex items-center gap-2 rounded-full px-4 py-2 text-sm text-gray-700 transition hover:bg-black/5"
-                    >
-                      <div className="flex size-7 items-center justify-center rounded-full bg-brand text-white">
-                        <User className="size-3.5" />
-                      </div>
-                      <span className="max-w-[120px] truncate">
-                        {user.email?.split("@")[0]}
-                      </span>
-                    </button>
-                    {showUserMenu && (
-                      <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
-                        <Link
-                          href="/profile"
-                          onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          <User className="size-4" />
-                          Profile
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            setShowUserMenu(false);
-                            await handleSignOut();
-                          }}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                        >
-                          <LogOut className="size-4" />
-                          Sign out
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <Link
+                    href="/sign-up"
+                    className="group relative inline-flex items-center gap-1.5 rounded-full bg-gray-950 px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_4px_14px_rgba(17,17,17,0.18)] transition-all hover:shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_6px_20px_rgba(91,110,225,0.35)]"
+                  >
+                    Get started
+                    <span className="ml-0.5 transition-transform group-hover:translate-x-0.5">→</span>
+                  </Link>
                 </>
-              ) : (
-                <>
-                  {!isAuthPage && (
-                    <>
-                      <ButtonLink
-                        href="/sign-in"
-                        className="text-sm text-gray-500 transition-colors hover:text-gray-950"
-                      >
-                        Sign in
-                      </ButtonLink>
-                      <ButtonLink
-                        href="/sign-up"
-                        className="rounded-full bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
-                      >
-                        Get started
-                      </ButtonLink>
-                    </>
-                  )}
-                </>
-              )}
-            </>
+              )
+            )
           )}
         </div>
 
@@ -154,67 +125,43 @@ export function Navbar() {
         </button>
       </div>
 
-      {mobileOpen ? (
-        <div className="mx-auto mt-3 max-w-[1180px] rounded-[28px] border border-black/8 bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_24px_60px_rgba(17,17,17,0.1)] backdrop-blur-xl md:hidden">
-          <nav className="flex flex-col gap-4">
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="mx-auto mt-3 max-w-[1140px] overflow-hidden rounded-3xl border border-black/[0.07] bg-white/95 p-6 shadow-[0_24px_60px_rgba(17,17,17,0.12)] backdrop-blur-2xl md:hidden">
+          <nav className="flex flex-col gap-1">
             {NAV_LINKS.map(({ label, href }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className="text-[15px] font-medium text-gray-900"
-              >
+              <Link key={href} href={href} className="rounded-xl px-3 py-3 text-[15px] font-medium text-gray-900 transition hover:bg-black/[0.04]">
                 {label}
               </Link>
             ))}
-            {!isLoading && user ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-[15px] font-medium text-gray-900"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-[15px] font-medium text-gray-900"
-                >
-                  Profile
-                </Link>
+          </nav>
+          <div className="my-4 h-px bg-black/[0.06]" />
+          {!isLoading && (
+            user ? (
+              <div className="flex flex-col gap-1">
+                <Link href="/dashboard" className="rounded-xl px-3 py-3 text-[15px] font-medium text-gray-900 transition hover:bg-black/[0.04]">Open app</Link>
                 <button
                   type="button"
-                  onClick={async () => {
-                    setMobileOpen(false);
-                    await handleSignOut();
-                  }}
-                  className="text-left text-[15px] font-medium text-red-600"
+                  onClick={handleSignOut}
+                  className="rounded-xl px-3 py-3 text-left text-[15px] font-medium text-red-600 transition hover:bg-red-50"
                 >
                   Sign out
                 </button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex flex-col gap-2.5">
+                <Link href="/sign-in" className="rounded-xl px-3 py-3 text-[15px] font-medium text-gray-900 transition hover:bg-black/[0.04]">Sign in</Link>
                 <Link
-                  href="/sign-in"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-[15px] font-medium text-gray-900"
-                >
-                  Sign in
-                </Link>
-                <ButtonLink
                   href="/sign-up"
-                  onClick={() => setMobileOpen(false)}
-                  className="mt-2 justify-center rounded-full bg-gray-950 px-5 py-3 text-sm font-medium text-white"
+                  className="flex items-center justify-center gap-1.5 rounded-full bg-gray-950 px-5 py-3 text-[14px] font-medium text-white shadow-[0_4px_14px_rgba(17,17,17,0.18)]"
                 >
-                  Get started
-                </ButtonLink>
-              </>
-            )}
-          </nav>
+                  Get started <span>→</span>
+                </Link>
+              </div>
+            )
+          )}
         </div>
-      ) : null}
+      )}
     </header>
   );
 }

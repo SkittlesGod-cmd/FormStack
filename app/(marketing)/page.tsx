@@ -1,460 +1,750 @@
+"use client";
+
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Zap,
-  ShieldCheck,
-  FileText,
-  Users,
-  BarChart3,
-  Share2,
-} from "lucide-react";
-import { ButtonLink } from "@/components/button-link";
+import { useEffect, useState } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 
-const STEPS = [
-  {
-    number: "01",
-    label: "Research",
-    title: "Clinical evidence, not guesswork",
-    body: "Describe what you want to build. FormLayer pulls dose ranges, evidence grades, and rationale from published human RCTs — and flags every known ingredient interaction before you proceed.",
-    points: ["Evidence grades from published RCTs", "Clinically-studied dose ranges per ingredient", "Interaction and antagonism flags"],
-  },
-  {
-    number: "02",
-    label: "Compliance",
-    title: "Know your risk before legal does",
-    body: "Every formulation gets a 100-point FDA compliance score with specific issue flags by ingredient. Issues below 75 get one-click auto-fix suggestions. Nothing leaves your workspace blind.",
-    points: ["100-point FDA compliance score", "Issue flags by ingredient and claim", "One-click auto-fix for common violations"],
-  },
-  {
-    number: "03",
-    label: "Handoff",
-    title: "From workspace to manufacturer in one click",
-    body: "Export a complete manufacturer brief: Supplement Facts panel, clinical rationale per ingredient, certifications needed, and a live share link. No reformatting, no back-and-forth.",
-    points: ["Print-ready PDF dossier", "Auto-generated Supplement Facts panel", "Live manufacturer share link"],
-  },
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// FormLayer · marketing home
+// Editorial premium design: aurora hero, live formulation card, three-act
+// product anatomy, real claims (no fabricated testimonials or vanity stats).
+// ─────────────────────────────────────────────────────────────────────────────
 
-const CAPABILITIES = [
-  {
-    icon: Zap,
-    title: "AI formulation in minutes",
-    body: "Go from health goal to a complete, clinically-dosed ingredient stack with rationale — before your next meeting.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "FDA compliance scoring",
-    body: "100-point compliance check with flagged issues and auto-fix suggestions. Catch label violations before legal does.",
-  },
-  {
-    icon: FileText,
-    title: "Supplement Facts panel",
-    body: "Auto-generated label with correct serving sizes, daily values, and formatting. Print-ready from day one.",
-  },
-  {
-    icon: Share2,
-    title: "Live manufacturer links",
-    body: "Share a live, read-only brief with any manufacturer. No stale PDFs, no re-sending specs after every update.",
-  },
-  {
-    icon: Users,
-    title: "Multi-product workspace",
-    body: "Manage every formulation in one place with version history, status tracking, and one-click restore.",
-  },
-  {
-    icon: BarChart3,
-    title: "Evidence grades A / B / C",
-    body: "Every ingredient rated by volume and quality of published human trials — so you know exactly what you're building on.",
-  },
-];
+// Ingredients reveal one at a time on the hero card.
+const INGREDIENTS = [
+  { name: "Lactobacillus rhamnosus GG", dose: "10B CFU", grade: "A", note: "Within RCT range" },
+  { name: "Zinc Bisglycinate",          dose: "30 mg",   grade: "A", note: "Within RCT range" },
+  { name: "Vitamin D₃ (Cholecalciferol)", dose: "2,000 IU", grade: "B", note: "Within RCT range" },
+  { name: "Berberine HCl",              dose: "500 mg",  grade: "B", note: "Consider 1,000 mg" },
+] as const;
 
-const TESTIMONIALS = [
-  {
-    quote: "We used to spend three days cross-referencing PubMed before we could even start a dose rationale. FormLayer collapsed that to an afternoon. The compliance score alone saved us from a legal review we didn't see coming.",
-    name: "Priya M.",
-    title: "Head of R&D",
-    company: "Sports Nutrition Brand",
-    initials: "PM",
-    color: "bg-violet-100 text-violet-700",
-  },
-  {
-    quote: "I caught three label claims that would have been flagged by our legal team — before the deck went to the client. That's real money saved, and it happened on the first formulation I ran through the platform.",
-    name: "James R.",
-    title: "Founder",
-    company: "Nutraceutical Brand",
-    initials: "JR",
-    color: "bg-emerald-100 text-emerald-700",
-  },
-  {
-    quote: "We manage 12 supplement clients. Every formulation lives in its own workspace with version history. When a client asks 'what changed between v3 and v5,' I have the answer in ten seconds.",
-    name: "Sofia T.",
-    title: "Strategy Director",
-    company: "CPG Agency",
-    initials: "ST",
-    color: "bg-amber-100 text-amber-700",
-  },
-];
+const HERO_PHASES = ["Searching clinical literature…", "Mapping ingredients to outcomes…", "Scoring FDA compliance…", "Ready for manufacturer."] as const;
 
-const STATS = [
-  { value: "< 5 min", label: "from goal to formulation draft" },
-  { value: "100-pt", label: "FDA compliance score" },
-  { value: "RCT-backed", label: "clinical dose ranges" },
-  { value: "1-click", label: "manufacturer handoff" },
-];
+const ACTS = [
+  {
+    eyebrow: "01 · Research",
+    title: "Citations come standard.",
+    body: "Every ingredient is grounded in published human RCTs — graded A, B, or C by trial quality and volume. No more PubMed grinding. No more guesswork on doses.",
+    bullets: ["Evidence grades A–C", "Dose ranges from human trials", "Interaction flags surfaced upfront"],
+  },
+  {
+    eyebrow: "02 · Formulate",
+    title: "From outcome to stack in minutes.",
+    body: "Describe what you want the product to do. FormLayer composes the ingredient stack, justifies every dose, and gives you a workspace to iterate — fast.",
+    bullets: ["Outcome-driven composition", "Per-ingredient rationale", "Version history, one-click restore"],
+  },
+  {
+    eyebrow: "03 · Comply",
+    title: "Know your label risk before legal does.",
+    body: "A 100-point FDA compliance score with issue flags per ingredient. Auto-fix suggestions for common violations. Nothing leaves the workspace blind.",
+    bullets: ["FDA 100-pt compliance score", "Issues flagged per ingredient", "Auto-fix for common violations"],
+  },
+] as const;
 
-const WHO_ITS_FOR = [
-  { label: "Supplement founders", desc: "Launch your first product without hiring a full R&D team." },
-  { label: "In-house R&D", desc: "Cut research time and stop managing compliance in spreadsheets." },
-  { label: "Brand operators", desc: "Move faster from idea to spec without waiting on outside consultants." },
-  { label: "CPG agencies", desc: "Manage every client formulation in one workspace with full version history." },
-];
+const FOR = [
+  { kind: "Founders",     line: "Launch a first product without hiring an R&D team."  },
+  { kind: "In-house R&D", line: "Cut research and dose-validation cycles by weeks."   },
+  { kind: "Brand operators", line: "Move from concept to spec without external consultants." },
+  { kind: "CPG agencies", line: "Manage every client formulation in one workspace." },
+] as const;
+
+const PRINCIPLES = [
+  { k: "Evidence", v: "Every recommendation traces back to a published human RCT." },
+  { k: "Restraint",  v: "We refuse to invent doses, claims, or interactions." },
+  { k: "Handoff",  v: "The output is what a manufacturer needs — not a marketing deck." },
+] as const;
 
 export default function HomePage() {
   return (
-    <div className="overflow-x-hidden">
-      {/* ── Hero ── */}
-      <section className="relative bg-white">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="subtle-grid absolute inset-0 opacity-[0.35]" />
-          <div
-            className="absolute -top-32 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full opacity-[0.12]"
-            style={{ background: "radial-gradient(ellipse at center, #5b6ee1 0%, transparent 70%)" }}
-          />
+    <div className="overflow-x-hidden bg-[#fbfaf7]">
+      <Hero />
+      <ProofBar />
+      <ActsSection />
+      <AnatomySection />
+      <PrinciplesSection />
+      <ForWhomSection />
+      <FinalCTA />
+    </div>
+  );
+}
+
+// ─── HERO ────────────────────────────────────────────────────────────────────
+
+function Hero() {
+  const { scrollYProgress } = useScroll();
+  const cardY = useTransform(scrollYProgress, [0, 0.25], [0, -40]);
+  const headlineOpacity = useTransform(scrollYProgress, [0, 0.18], [1, 0.4]);
+
+  return (
+    <section className="relative isolate overflow-hidden pt-24 pb-28 md:pt-32 md:pb-36">
+      {/* Aurora backdrop */}
+      <div className="aurora" />
+      {/* Soft grid + grain */}
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.25]">
+        <div className="subtle-grid absolute inset-0" />
+      </div>
+      <div className="grain pointer-events-none absolute inset-0 -z-10" />
+
+      <div className="page-shell relative">
+        {/* Eyebrow */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+          className="mx-auto flex w-fit items-center gap-2 rounded-full border border-black/[0.06] bg-white/70 px-3.5 py-1.5 text-[11.5px] font-medium tracking-wide text-gray-700 shadow-[0_1px_2px_rgba(17,17,17,0.04)] backdrop-blur"
+        >
+          <span className="relative flex size-1.5">
+            <span className="absolute inset-0 animate-ping rounded-full bg-brand/70" />
+            <span className="relative size-1.5 rounded-full bg-brand" />
+          </span>
+          Now in private beta · invite-only
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          style={{ opacity: headlineOpacity }}
+          initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="display-2xl mx-auto mt-7 max-w-[18ch] text-center text-balance-tight"
+        >
+          <span className="text-gradient-ink">Supplement formulation,</span>{" "}
+          <span className="text-gradient-brand italic">rebuilt</span>{" "}
+          <span className="text-gradient-ink">on evidence.</span>
+        </motion.h1>
+
+        {/* Subhead */}
+        <motion.p
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.12 }}
+          className="mx-auto mt-7 max-w-[44ch] text-center text-[17px] leading-[1.55] text-gray-500"
+        >
+          One workspace for clinical research, FDA compliance, and the manufacturer brief —
+          so a complete formulation takes an afternoon, not a quarter.
+        </motion.p>
+
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+        >
+          <Link
+            href="/sign-up"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gray-950 px-7 py-3.5 text-[14px] font-medium text-white shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_8px_24px_rgba(17,17,17,0.2)] transition-all hover:shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_12px_32px_rgba(91,110,225,0.35)]"
+          >
+            <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/0 to-white/15 opacity-0 transition-opacity group-hover:opacity-100" />
+            <span className="relative">Request access</span>
+            <span className="relative transition-transform group-hover:translate-x-0.5">→</span>
+          </Link>
+          <Link
+            href="/features"
+            className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/70 px-6 py-3.5 text-[14px] font-medium text-gray-900 backdrop-blur transition hover:border-black/15 hover:bg-white"
+          >
+            See the product
+          </Link>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.32 }}
+          className="mt-5 text-center text-[12px] text-gray-400"
+        >
+          For brands, R&D teams, and CPG agencies building evidence-led products.
+        </motion.p>
+
+        {/* Live formulation card */}
+        <motion.div style={{ y: cardY }} className="mx-auto mt-20 max-w-[860px]">
+          <LiveFormulationCard />
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Live formulation card (the centerpiece) ─────────────────────────────────
+
+function LiveFormulationCard() {
+  const [phase, setPhase] = useState(0);
+  const [visibleIngs, setVisibleIngs] = useState(0);
+  const [score, setScore] = useState(0);
+
+  // Animate phases on a loop.
+  useEffect(() => {
+    let t1: ReturnType<typeof setTimeout>;
+    let t2: ReturnType<typeof setTimeout>;
+    let t3: ReturnType<typeof setTimeout>;
+    let t4: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+    let cycleTimer: ReturnType<typeof setTimeout>;
+
+    const cycle = () => {
+      if (cancelled) return;
+      setPhase(0); setVisibleIngs(0); setScore(0);
+      t1 = setTimeout(() => setPhase(1), 1400);
+      t2 = setTimeout(() => {
+        // reveal ingredients one by one
+        for (let i = 1; i <= INGREDIENTS.length; i++) {
+          setTimeout(() => setVisibleIngs(i), (i - 1) * 380);
+        }
+      }, 2100);
+      t3 = setTimeout(() => {
+        setPhase(2);
+        // animate score 0 → 91
+        let s = 0;
+        const id = setInterval(() => {
+          s += 3;
+          if (s >= 91) { s = 91; clearInterval(id); }
+          setScore(s);
+        }, 28);
+      }, 4400);
+      t4 = setTimeout(() => setPhase(3), 6000);
+      cycleTimer = setTimeout(cycle, 9000);
+    };
+    cycle();
+    return () => {
+      cancelled = true;
+      [t1, t2, t3, t4, cycleTimer].forEach(t => t && clearTimeout(t));
+    };
+  }, []);
+
+  return (
+    <div className="relative">
+      {/* Soft halo */}
+      <div className="pointer-events-none absolute -inset-x-8 -inset-y-10 -z-10 rounded-[40px] bg-gradient-to-b from-white/0 via-[#c3b3ff]/30 to-white/0 blur-2xl" />
+
+      <div className="cinema-card overflow-hidden">
+        {/* Window chrome */}
+        <div className="flex items-center justify-between border-b border-black/[0.05] bg-white/40 px-5 py-3 backdrop-blur">
+          <div className="flex items-center gap-2">
+            <span className="size-2.5 rounded-full bg-[#ff6058]/70" />
+            <span className="size-2.5 rounded-full bg-[#ffbd2e]/70" />
+            <span className="size-2.5 rounded-full bg-[#27c93f]/70" />
+          </div>
+          <div className="flex items-center gap-2 rounded-full bg-white/60 px-3 py-1 text-[11px] text-gray-500">
+            <span className="size-1.5 rounded-full bg-brand animate-pulse" />
+            formlayer.co / workspace
+          </div>
+          <div className="w-12" />
         </div>
 
-        <div className="page-shell relative pt-20 pb-16 md:pt-28 md:pb-24">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand/[0.05] px-4 py-1.5 text-[12px] font-semibold text-brand">
-              <span className="size-1.5 rounded-full bg-brand animate-pulse inline-block" />
-              AI formulation · FDA compliance · Manufacturer handoff
+        {/* Body */}
+        <div className="grid gap-0 md:grid-cols-[1.35fr_1fr]">
+          {/* Left: formulation */}
+          <div className="border-b border-black/[0.05] p-7 md:border-b-0 md:border-r">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand">Formulation</p>
+                <h3 className="mt-1.5 text-[20px] font-semibold tracking-[-0.022em] text-gray-950">Gut–Skin Support Stack</h3>
+                <p className="mt-1 text-[12.5px] text-gray-500">Targeted at women 18–35 · capsule · 4 ingredients</p>
+              </div>
+              <AnimatePresence>
+                {phase >= 2 && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
+                    className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
+                  >
+                    {score} / 100
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
 
-            <h1 className="display-xl text-gray-950">
-              Supplement formulation<br />
-              that&apos;s built on<br />
-              <span className="text-brand">clinical evidence.</span>
-            </h1>
-
-            <p className="body-lg mx-auto mt-6 max-w-xl text-gray-600">
-              Go from health goal to a complete, FDA-reviewed ingredient stack — with dose ranges from published RCTs and a manufacturer-ready brief — in minutes, not weeks.
-            </p>
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <ButtonLink
-                href="/sign-up"
-                className="rounded-full bg-gray-950 px-7 py-3.5 text-[14px] font-semibold text-white transition hover:bg-gray-800 shadow-[0_1px_3px_rgba(0,0,0,0.18)]"
-              >
-                Start for free
-              </ButtonLink>
-              <ButtonLink
-                href="/vs"
-                variant="ghost"
-                className="rounded-full border border-black/10 bg-white px-7 py-3.5 text-[14px] font-semibold text-gray-900 transition hover:border-black/20 hover:bg-black/[0.02] flex items-center gap-2"
-              >
-                See how it compares <ArrowRight className="size-4" />
-              </ButtonLink>
-            </div>
-
-            <p className="mt-4 text-[12px] text-gray-400">
-              No credit card required &middot; Free plan includes 3 formulations
-            </p>
-          </div>
-
-          {/* Product mockup card */}
-          <div className="mx-auto mt-14 max-w-2xl">
-            <div className="surface-card overflow-hidden">
-              {/* Window chrome */}
-              <div className="flex items-center gap-2 border-b border-black/5 bg-gray-50/80 px-5 py-3">
-                <span className="size-3 rounded-full bg-red-300" />
-                <span className="size-3 rounded-full bg-yellow-300" />
-                <span className="size-3 rounded-full bg-green-300" />
-                <span className="ml-3 text-[12px] text-gray-400">FormLayer — formulation workspace</span>
+            {/* Phase line */}
+            <div className="mt-5 flex items-center gap-2.5 rounded-xl bg-gray-50/80 px-3.5 py-2.5 ring-1 ring-black/[0.04]">
+              <div className="relative flex size-4 items-center justify-center">
+                {phase < 3 ? (
+                  <>
+                    <span className="absolute inset-0 animate-ping rounded-full bg-brand/40" />
+                    <span className="relative size-2 rounded-full bg-brand" />
+                  </>
+                ) : (
+                  <svg viewBox="0 0 16 16" className="size-4 text-emerald-600">
+                    <circle cx="8" cy="8" r="7" fill="currentColor" opacity="0.15" />
+                    <path d="M4.5 8.5l2.2 2 4.8-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  </svg>
+                )}
               </div>
-
-              <div className="p-6 md:p-8">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[13px] font-semibold text-gray-950">Gut-Skin Support Stack</p>
-                    <p className="mt-0.5 text-[12px] text-gray-400">Targeting acne-prone women 18–35 · Capsule · 6 ingredients</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 shrink-0">
-                    91 / 100 compliant
-                  </span>
-                </div>
-
-                {/* Ingredient rows */}
-                <div className="mt-5 space-y-2">
-                  {[
-                    { name: "Lactobacillus rhamnosus GG", dose: "10B CFU", grade: "A", assess: "✓ at dose" },
-                    { name: "Zinc Bisglycinate", dose: "30 mg", grade: "A", assess: "✓ at dose" },
-                    { name: "Vitamin D3 (Cholecalciferol)", dose: "2,000 IU", grade: "B", assess: "✓ at dose" },
-                    { name: "Berberine HCl", dose: "500 mg", grade: "B", assess: "↑ consider 1,000mg" },
-                  ].map((ing) => (
-                    <div key={ing.name} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-2.5">
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          ing.grade === "A"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {ing.grade}
-                      </span>
-                      <span className="flex-1 text-[13px] text-gray-800">{ing.name}</span>
-                      <span className="text-[12px] font-medium text-gray-500">{ing.dose}</span>
-                      <span className={`text-[11px] font-medium ${ing.assess.startsWith("✓") ? "text-emerald-600" : "text-amber-600"}`}>
-                        {ing.assess}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Bottom row */}
-                <div className="mt-5 grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-black/[0.05] bg-white p-3 text-center">
-                    <p className="text-[18px] font-semibold tracking-tight text-gray-950">91</p>
-                    <p className="text-[10px] text-gray-400">compliance score</p>
-                  </div>
-                  <div className="rounded-xl border border-black/[0.05] bg-white p-3 text-center">
-                    <p className="text-[18px] font-semibold tracking-tight text-gray-950">4 / 4</p>
-                    <p className="text-[10px] text-gray-400">grade A or B</p>
-                  </div>
-                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center">
-                    <p className="text-[18px] font-semibold tracking-tight text-emerald-600">Ready</p>
-                    <p className="text-[10px] text-emerald-600/70">for manufacturer</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Who it's for ── */}
-      <section className="border-y border-black/[0.05] bg-gray-50/60 py-10">
-        <div className="page-shell">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {WHO_ITS_FOR.map(({ label, desc }) => (
-              <div key={label}>
-                <p className="text-[12px] font-semibold text-gray-900">{label}</p>
-                <p className="mt-1 text-[12px] leading-relaxed text-gray-500">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats ── */}
-      <section className="bg-white py-14">
-        <div className="page-shell">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {STATS.map(({ value, label }) => (
-              <div key={label} className="rounded-2xl border border-black/[0.06] bg-white px-5 py-6 text-center shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-                <p className="text-[26px] font-semibold tracking-[-0.04em] text-gray-950">{value}</p>
-                <p className="mt-1 text-[12px] text-gray-500">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works — numbered steps ── */}
-      <section className="bg-gray-950 py-20 md:py-28">
-        <div className="page-shell">
-          <div className="mx-auto max-w-2xl text-center mb-14">
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#a5b4fc" }}>
-              How it works
-            </p>
-            <h2 className="display-lg mt-4 text-white">
-              Research. Comply. Ship.
-            </h2>
-            <p className="mt-5 text-[16px] leading-relaxed text-gray-400">
-              The full formulation workflow — from clinical evidence to manufacturer brief — without switching between five tools.
-            </p>
-          </div>
-
-          <div className="grid gap-5 lg:grid-cols-3">
-            {STEPS.map(({ number, label, title, body, points }) => (
-              <div key={number} className="rounded-[24px] border border-white/[0.08] bg-white/[0.04] p-8 backdrop-blur-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="text-[42px] font-semibold tracking-[-0.04em] text-white/10 leading-none">{number}</span>
-                  <span className="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#a5b4fc", borderColor: "rgba(165,180,252,0.3)", background: "rgba(91,110,225,0.12)" }}>
-                    {label}
-                  </span>
-                </div>
-                <h3 className="text-[20px] font-semibold tracking-[-0.025em] text-white leading-snug">{title}</h3>
-                <p className="mt-3 text-[14px] leading-relaxed text-gray-400">{body}</p>
-                <ul className="mt-6 space-y-2.5">
-                  {points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2.5 text-[13px] text-gray-300">
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0" style={{ color: "#818cf8" }} />
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 text-center">
-            <ButtonLink
-              href="/sign-up"
-              className="rounded-full bg-white px-7 py-3.5 text-[14px] font-semibold text-gray-950 transition hover:bg-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
-            >
-              Try it free — no card required
-            </ButtonLink>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Capabilities grid ── */}
-      <section className="bg-white py-20 md:py-28">
-        <div className="page-shell">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-            <div className="max-w-md">
-              <p className="eyebrow">Platform</p>
-              <h2 className="display-md mt-4 text-gray-950">
-                Everything a supplement team actually needs.
-              </h2>
-              <p className="body-md mt-5 text-gray-500">
-                FormLayer replaces the fragmented stack — PubMed, Notion, spreadsheets, and email threads — with one workflow your whole team can use.
-              </p>
-              <Link
-                href="/pricing"
-                className="mt-7 inline-flex items-center gap-2 text-[14px] font-semibold text-gray-950 hover:text-brand transition-colors"
-              >
-                See plans and pricing <ArrowRight className="size-4" />
-              </Link>
-              <div className="mt-6 hidden lg:block">
-                <Link
-                  href="/vs"
-                  className="text-[13px] text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={phase}
+                  initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-[12.5px] font-medium text-gray-700"
                 >
-                  FormLayer vs. spreadsheets →
-                </Link>
+                  {HERO_PHASES[phase]}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+
+            {/* Ingredients */}
+            <ul className="mt-4 space-y-1.5">
+              {INGREDIENTS.map((ing, i) => {
+                const shown = i < visibleIngs;
+                return (
+                  <motion.li
+                    key={ing.name}
+                    initial={false}
+                    animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex items-center gap-3 rounded-xl border border-black/[0.04] bg-white px-3 py-2.5"
+                  >
+                    <span
+                      className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                        ing.grade === "A" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {ing.grade}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12.5px] font-medium text-gray-900">{ing.name}</p>
+                      <p className="truncate text-[10.5px] text-gray-400">{ing.note}</p>
+                    </div>
+                    <span className="shrink-0 font-mono text-[11.5px] text-gray-700">{ing.dose}</span>
+                  </motion.li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* Right: live compliance ring + meta */}
+          <div className="flex flex-col justify-between gap-5 p-7">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand">FDA compliance</p>
+              <div className="mt-5 flex items-end gap-4">
+                <ComplianceRing score={score} active={phase >= 2} />
+                <div className="pb-1">
+                  <p className="text-[11px] text-gray-400">Status</p>
+                  <p className="text-[13px] font-semibold text-gray-950">
+                    {phase >= 3 ? "Ready" : phase >= 2 ? "Scoring…" : "Pending"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 space-y-1.5">
+                {[
+                  { label: "Label claims",     ok: phase >= 2 },
+                  { label: "Daily-value math", ok: phase >= 2 },
+                  { label: "Allergen disclosure", ok: phase >= 3 },
+                ].map(({ label, ok }) => (
+                  <div key={label} className="flex items-center justify-between text-[11.5px]">
+                    <span className="text-gray-500">{label}</span>
+                    <span className={ok ? "text-emerald-600" : "text-gray-300"}>
+                      {ok ? "✓ Passing" : "Queued"}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {CAPABILITIES.map(({ icon: Icon, title, body }) => (
-                <div key={title} className="group rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:border-brand/20 hover:shadow-[0_4px_16px_rgba(91,110,225,0.08)] transition-all">
-                  <div className="inline-flex size-10 items-center justify-center rounded-xl bg-brand/[0.08] text-brand">
-                    <Icon className="size-5" />
-                  </div>
-                  <h3 className="mt-4 text-[15px] font-semibold tracking-[-0.015em] text-gray-950">{title}</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{body}</p>
-                </div>
-              ))}
-            </div>
+            <AnimatePresence>
+              {phase >= 3 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3.5"
+                >
+                  <p className="text-[10.5px] font-semibold uppercase tracking-widest text-emerald-700">Manufacturer brief</p>
+                  <p className="mt-1 text-[12px] leading-snug text-emerald-800">
+                    Supplement Facts panel + clinical rationale + share link generated.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  );
+}
 
-      {/* ── Testimonials ── */}
-      <section className="bg-gray-50 py-20 md:py-28">
-        <div className="page-shell">
-          <div className="mx-auto max-w-xl text-center mb-12">
-            <p className="eyebrow">What users say</p>
-            <h2 className="display-md mt-4 text-gray-950">
-              Built for teams who ship real products.
-            </h2>
-          </div>
+function ComplianceRing({ score, active }: { score: number; active: boolean }) {
+  const r = 32, c = 2 * Math.PI * r;
+  const offset = c - (score / 100) * c;
+  return (
+    <div className="relative size-[88px]">
+      <svg viewBox="0 0 80 80" className="size-full -rotate-90">
+        <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(17,17,17,0.05)" strokeWidth="6" />
+        <circle
+          cx="40" cy="40" r={r} fill="none"
+          stroke="url(#g)" strokeWidth="6" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={active ? offset : c}
+          style={{ transition: "stroke-dashoffset 0.6s ease-out" }}
+        />
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#7c8dff" />
+            <stop offset="100%" stopColor="#b88af2" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[22px] font-semibold tracking-tight text-gray-950 tabular-nums">{score}</span>
+        <span className="text-[9px] uppercase tracking-widest text-gray-400">score</span>
+      </div>
+    </div>
+  );
+}
 
-          <div className="grid gap-5 lg:grid-cols-3">
-            {TESTIMONIALS.map(({ quote, name, title, company, initials, color }) => (
-              <div key={name} className="surface-card flex flex-col p-7">
-                <div className="flex gap-0.5 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="size-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="flex-1 text-[14px] leading-relaxed text-gray-700">&ldquo;{quote}&rdquo;</p>
-                <div className="mt-6 border-t border-black/[0.05] pt-5 flex items-center gap-3">
-                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${color}`}>
-                    {initials}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-gray-950">{name}</p>
-                    <p className="text-[11px] text-gray-400">{title} · {company}</p>
-                  </div>
-                </div>
-              </div>
+// ─── PROOF BAR ───────────────────────────────────────────────────────────────
+
+function ProofBar() {
+  const items = [
+    "Built on published RCTs",
+    "FDA-aware label review",
+    "Manufacturer-ready briefs",
+    "Version-controlled workspace",
+    "Citations, not claims",
+    "Evidence grades per ingredient",
+  ];
+  return (
+    <section className="relative border-y border-black/[0.05] bg-white/70 py-5 backdrop-blur">
+      <div className="page-shell">
+        <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+          <div className="marquee-track flex w-max items-center gap-12 whitespace-nowrap text-[12px] font-medium uppercase tracking-[0.18em] text-gray-400">
+            {[...items, ...items].map((s, i) => (
+              <span key={i} className="flex items-center gap-3">
+                <span className="size-1 rounded-full bg-brand/60" /> {s}
+              </span>
             ))}
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* ── Comparison callout band ── */}
-      <section className="bg-white border-y border-black/[0.05] py-14">
-        <div className="page-shell">
-          <div className="flex flex-col items-center gap-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2">vs. spreadsheets</p>
-              <h3 className="text-[22px] font-semibold tracking-[-0.025em] text-gray-950">
-                Still managing formulations in Google Sheets?
-              </h3>
-              <p className="mt-2 text-[14px] text-gray-500 max-w-xl">
-                No clinical evidence context. No compliance check. No version history. See exactly what you&apos;re giving up.
-              </p>
+// ─── THREE ACTS (Research / Formulate / Comply) ─────────────────────────────
+
+function ActsSection() {
+  return (
+    <section className="relative py-28 md:py-36">
+      <div className="page-shell">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">The workflow</p>
+          <h2 className="display-md mt-4 text-balance-tight text-gradient-ink">
+            Three acts. One workspace.
+          </h2>
+          <p className="body-md mx-auto mt-5 max-w-xl text-gray-500">
+            The full path from health goal to manufacturer brief — without the spreadsheets,
+            the citation hunts, or the legal surprises.
+          </p>
+        </div>
+
+        <div className="mt-24 space-y-32">
+          {ACTS.map((act, i) => (
+            <ActRow key={act.title} act={act} index={i} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ActRow({ act, index }: { act: typeof ACTS[number]; index: number }) {
+  const reverse = index % 2 === 1;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className={`grid gap-12 md:gap-20 md:grid-cols-2 md:items-center ${reverse ? "md:[&>*:first-child]:order-2" : ""}`}
+    >
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">{act.eyebrow}</p>
+        <h3 className="mt-4 text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] text-gradient-ink md:text-[48px]">
+          {act.title}
+        </h3>
+        <p className="mt-5 max-w-md text-[16px] leading-relaxed text-gray-500">{act.body}</p>
+        <ul className="mt-7 space-y-2.5">
+          {act.bullets.map(b => (
+            <li key={b} className="flex items-start gap-2.5 text-[14px] text-gray-700">
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />
+              {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="relative">
+        <div className="absolute -inset-8 -z-10 rounded-[44px] bg-gradient-to-br from-[#dcd1ff]/40 via-transparent to-[#b9c8ff]/40 blur-2xl" />
+        {index === 0 && <ResearchPanel />}
+        {index === 1 && <FormulatePanel />}
+        {index === 2 && <CompliancePanel />}
+      </div>
+    </motion.div>
+  );
+}
+
+function ResearchPanel() {
+  const papers = [
+    { title: "Bacopa monnieri 300 mg: meta-analysis", grade: "A", n: 437, eff: 78 },
+    { title: "Ashwagandha KSM-66 12-week RCT",         grade: "A", n: 64,  eff: 84 },
+    { title: "L-Theanine and sustained attention",     grade: "B", n: 91,  eff: 62 },
+  ];
+  return (
+    <div className="cinema-card overflow-hidden p-5">
+      <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+        <span>Clinical literature</span>
+        <span>3,214 studies scanned</span>
+      </div>
+      <div className="mt-3 space-y-2">
+        {papers.map((p) => (
+          <div key={p.title} className="rounded-xl border border-black/[0.05] bg-white/80 p-3.5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="truncate text-[12.5px] font-medium text-gray-900">{p.title}</p>
+              <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${p.grade === "A" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{p.grade}</span>
             </div>
-            <Link
-              href="/vs"
-              className="shrink-0 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-6 py-3 text-[13px] font-semibold text-gray-900 transition hover:border-black/20 hover:bg-gray-50"
+            <div className="mt-2 flex items-center gap-3">
+              <span className="text-[10.5px] text-gray-400">n = {p.n}</span>
+              <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                <div className="h-full rounded-full bg-gradient-to-r from-brand to-[#b88af2] transition-all" style={{ width: `${p.eff}%` }} />
+              </div>
+              <span className="font-mono text-[10.5px] tabular-nums text-gray-500">{p.eff}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FormulatePanel() {
+  return (
+    <div className="cinema-card overflow-hidden p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Stack composition</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {[
+          { n: "Magnesium Glycinate", d: "200 mg", g: "A" },
+          { n: "L-Theanine",          d: "200 mg", g: "A" },
+          { n: "Apigenin",            d: "50 mg",  g: "B" },
+          { n: "Glycine",             d: "3 g",    g: "B" },
+        ].map((ing) => (
+          <div key={ing.n} className="rounded-xl border border-black/[0.05] bg-white/85 p-3">
+            <div className="flex items-center justify-between">
+              <span className={`rounded-md px-1.5 py-0.5 text-[9.5px] font-bold ${ing.g === "A" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{ing.g}</span>
+              <span className="font-mono text-[11px] text-gray-600">{ing.d}</span>
+            </div>
+            <p className="mt-2 text-[12px] font-medium text-gray-900">{ing.n}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-xl bg-gradient-to-br from-brand/5 to-[#b88af2]/5 p-3.5 ring-1 ring-brand/10">
+        <p className="text-[10.5px] font-semibold uppercase tracking-widest text-brand">Rationale</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-gray-700">
+          GABAergic stack targeting onset latency in adults 30–55, anchored on glycine 3 g per 2024 meta-analysis.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CompliancePanel() {
+  return (
+    <div className="cinema-card overflow-hidden p-5">
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">FDA review</p>
+          <p className="mt-3 text-[44px] font-semibold leading-none tracking-[-0.04em] text-gray-950 tabular-nums">94<span className="text-[20px] text-gray-300">/100</span></p>
+        </div>
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">Ready to ship</span>
+      </div>
+      <div className="mt-4 space-y-1.5">
+        {[
+          { l: "Label claim wording",      s: "Passed", ok: true },
+          { l: "DV calculations",          s: "Passed", ok: true },
+          { l: "Allergen disclosure",      s: "Passed", ok: true },
+          { l: "Structure-function claim", s: "Reword recommended", ok: false },
+        ].map(r => (
+          <div key={r.l} className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-[12px] hover:bg-gray-50/60">
+            <span className="text-gray-700">{r.l}</span>
+            <span className={r.ok ? "text-emerald-600" : "text-amber-600"}>
+              {r.ok ? "✓ " : "⚠ "}{r.s}
+            </span>
+          </div>
+        ))}
+      </div>
+      <button className="mt-4 w-full rounded-xl border border-black/[0.08] bg-white px-3.5 py-2.5 text-[12.5px] font-medium text-gray-950 transition hover:bg-gray-50">
+        Apply auto-fix
+      </button>
+    </div>
+  );
+}
+
+// ─── ANATOMY OF A BRIEF ──────────────────────────────────────────────────────
+
+function AnatomySection() {
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#fbfaf7] to-white py-28 md:py-36">
+      <div className="page-shell">
+        <div className="grid gap-14 md:grid-cols-[1fr_1.05fr] md:items-center">
+          <div>
+            <p className="eyebrow">What you ship</p>
+            <h2 className="display-md mt-4 text-balance-tight text-gradient-ink">
+              The output is a brief a manufacturer can actually quote.
+            </h2>
+            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-gray-500">
+              Not a slide deck. Not a spreadsheet export. A complete, version-controlled brief —
+              Supplement Facts panel, clinical rationale per ingredient, certifications needed,
+              and a live share link.
+            </p>
+            <ul className="mt-7 space-y-3 text-[14px] text-gray-700">
+              {[
+                "Supplement Facts panel · auto-generated",
+                "Clinical rationale · per ingredient, with citations",
+                "Live manufacturer share link · always current",
+                "Version history · one-click restore",
+              ].map(l => (
+                <li key={l} className="flex items-start gap-2.5">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />
+                  {l}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <SupplementFactsPanel />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SupplementFactsPanel() {
+  return (
+    <div className="relative">
+      <div className="absolute -inset-6 -z-10 rounded-[36px] bg-gradient-to-br from-[#dcd1ff]/40 via-transparent to-[#b9c8ff]/40 blur-2xl" />
+      <div className="cinema-card overflow-hidden">
+        <div className="border-b-[6px] border-double border-black/85 px-6 pt-6 pb-3">
+          <h3 className="font-serif text-[26px] font-bold tracking-tight text-gray-950">Supplement Facts</h3>
+          <p className="mt-1 text-[12px] text-gray-700">Serving Size 2 Capsules · Servings Per Container 30</p>
+        </div>
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between border-b border-black/30 pb-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-700">
+            <span>Amount Per Serving</span><span>% DV*</span>
+          </div>
+          {[
+            { n: "Vitamin D₃ (Cholecalciferol)", a: "2,000 IU", dv: "250%" },
+            { n: "Zinc (as Bisglycinate)",        a: "30 mg",    dv: "273%" },
+            { n: "L. rhamnosus GG",               a: "10B CFU",  dv: "†" },
+            { n: "Berberine HCl",                 a: "500 mg",   dv: "†" },
+          ].map(r => (
+            <div key={r.n} className="flex items-center justify-between border-b border-black/10 py-2 text-[12.5px] text-gray-900">
+              <span>{r.n}</span>
+              <span className="flex gap-6">
+                <span className="font-medium tabular-nums">{r.a}</span>
+                <span className="w-10 text-right tabular-nums text-gray-600">{r.dv}</span>
+              </span>
+            </div>
+          ))}
+          <p className="mt-3 text-[10.5px] leading-relaxed text-gray-500">
+            *Percent Daily Values based on a 2,000 calorie diet.<br />†Daily Value not established.
+          </p>
+        </div>
+        <div className="flex items-center justify-between border-t border-black/[0.05] bg-gray-50/60 px-6 py-3">
+          <span className="text-[10.5px] font-semibold uppercase tracking-widest text-brand">FormLayer · v3.2</span>
+          <span className="text-[10.5px] text-gray-500">Generated 12 sec ago</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PRINCIPLES (ideology) ───────────────────────────────────────────────────
+
+function PrinciplesSection() {
+  return (
+    <section className="relative isolate overflow-hidden py-32 md:py-40">
+      <div className="aurora aurora-dark absolute inset-0 -z-10 opacity-60" />
+      <div className="absolute inset-0 -z-10 bg-gray-950" />
+      <div className="grain pointer-events-none absolute inset-0 -z-10" />
+
+      <div className="page-shell relative">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a5b4fc]">What we believe</p>
+          <h2 className="display-lg mt-5 text-balance-tight text-white">
+            We don&apos;t invent doses.<br />
+            <span className="text-gradient-brand-dark italic">We surface evidence.</span>
+          </h2>
+          <p className="mx-auto mt-6 max-w-xl text-[16px] leading-relaxed text-gray-400">
+            FormLayer is a thinking-tool, not a content generator. Every claim it shows is
+            traceable to a published trial. If the evidence isn&apos;t there, the tool says so.
+          </p>
+        </div>
+
+        <div className="mt-20 grid gap-5 md:grid-cols-3">
+          {PRINCIPLES.map(({ k, v }, i) => (
+            <motion.div
+              key={k}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6, delay: i * 0.08 }}
+              className="rounded-3xl border border-white/[0.08] bg-white/[0.025] p-7 backdrop-blur-sm"
             >
-              See full comparison <ArrowRight className="size-4" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a5b4fc]">{k}</p>
+              <p className="mt-4 text-[18px] leading-relaxed text-white/90">{v}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── FOR WHOM ────────────────────────────────────────────────────────────────
+
+function ForWhomSection() {
+  return (
+    <section className="relative py-28 md:py-36">
+      <div className="page-shell">
+        <div className="grid gap-14 md:grid-cols-[1fr_1.4fr]">
+          <div>
+            <p className="eyebrow">Who it&apos;s for</p>
+            <h2 className="display-md mt-4 text-balance-tight text-gradient-ink">
+              Built for teams that ship real products.
+            </h2>
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {FOR.map(({ kind, line }) => (
+              <li key={kind} className="rounded-2xl border border-black/[0.05] bg-white/70 p-6 backdrop-blur transition hover:border-brand/20 hover:bg-white">
+                <p className="text-[14px] font-semibold tracking-[-0.01em] text-gray-950">{kind}</p>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-500">{line}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── FINAL CTA ───────────────────────────────────────────────────────────────
+
+function FinalCTA() {
+  return (
+    <section className="relative isolate overflow-hidden pb-32 pt-12 md:pb-40">
+      <div className="page-shell">
+        <div className="relative overflow-hidden rounded-[36px] border border-black/[0.05] bg-white p-12 text-center shadow-[0_30px_80px_-30px_rgba(91,110,225,0.35)] md:p-20">
+          <div className="aurora absolute inset-0 -z-10 opacity-70" />
+          <div className="grain pointer-events-none absolute inset-0 -z-10" />
+
+          <p className="eyebrow">Start building</p>
+          <h2 className="display-lg mt-5 text-balance-tight text-gradient-ink">
+            Stop guessing at doses.<br />Start building on evidence.
+          </h2>
+          <p className="mx-auto mt-6 max-w-lg text-[16px] leading-relaxed text-gray-500">
+            FormLayer is in private beta. Request access and we&apos;ll get back to you within two business days.
+          </p>
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/sign-up"
+              className="group inline-flex items-center gap-2 rounded-full bg-gray-950 px-7 py-3.5 text-[14px] font-medium text-white shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_8px_24px_rgba(17,17,17,0.2)] transition-all hover:shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_12px_32px_rgba(91,110,225,0.35)]"
+            >
+              Request access
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white px-7 py-3.5 text-[14px] font-medium text-gray-900 transition hover:border-black/15 hover:bg-gray-50"
+            >
+              View pricing
             </Link>
           </div>
         </div>
-      </section>
-
-      {/* ── Dark CTA ── */}
-      <section className="bg-gray-950 py-20 md:py-28">
-        <div className="page-shell">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#a5b4fc" }}>
-              Get started today
-            </p>
-            <h2 className="display-lg text-white">
-              Stop guessing at doses.<br />Start building on evidence.
-            </h2>
-            <p className="mt-5 text-[16px] leading-relaxed text-gray-400">
-              Free plan includes 3 formulations. No credit card. No setup fee.
-            </p>
-
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <ButtonLink
-                href="/sign-up"
-                className="rounded-full bg-white px-8 py-4 text-[15px] font-semibold text-gray-950 transition hover:bg-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
-              >
-                Create free account
-              </ButtonLink>
-              <ButtonLink
-                href="/pricing"
-                variant="ghost"
-                className="rounded-full border border-white/15 px-8 py-4 text-[15px] font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-              >
-                View pricing
-              </ButtonLink>
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-[12px] text-gray-500">
-              {[
-                "No credit card required",
-                "3 formulations free",
-                "Upgrade or cancel anytime",
-              ].map((item) => (
-                <span key={item} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-gray-600" />
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

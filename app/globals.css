@@ -216,6 +216,124 @@
   background-size: 48px 48px;
 }
 
+/* ── Premium hero typography ─────────────────────────────────────── */
+.display-2xl {
+  font-size: clamp(3.4rem, 7.8vw, 7.25rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.93;
+}
+
+.text-balance-tight { text-wrap: balance; }
+
+.text-gradient-ink {
+  background: linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 55%, #5b5b5b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-brand {
+  background: linear-gradient(120deg, #6d7eea 0%, #8b6ff0 45%, #b88af2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-brand-dark {
+  background: linear-gradient(120deg, #c9d1ff 0%, #b8a5ff 45%, #e5d8ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Aurora glow (the "imaginary" backdrop) ──────────────────────── */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  will-change: transform;
+}
+.aurora::before {
+  width: 64vw;
+  height: 64vw;
+  left: -10vw;
+  top: -22vw;
+  background: radial-gradient(circle, #b9a0ff 0%, transparent 65%);
+  animation: aurora-pan-a 22s ease-in-out infinite alternate;
+}
+.aurora::after {
+  width: 56vw;
+  height: 56vw;
+  right: -12vw;
+  top: -16vw;
+  background: radial-gradient(circle, #7c8dff 0%, transparent 60%);
+  animation: aurora-pan-b 26s ease-in-out infinite alternate;
+}
+.aurora-dark::before {
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.55) 0%, transparent 65%);
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+.aurora-dark::after {
+  background: radial-gradient(circle, rgba(96, 121, 255, 0.5) 0%, transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+@keyframes aurora-pan-a {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(8vw, 5vw, 0) scale(1.08); }
+}
+@keyframes aurora-pan-b {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-6vw, 7vw, 0) scale(1.1); }
+}
+
+/* ── Cinematic card treatment ────────────────────────────────────── */
+.cinema-card {
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 40px 100px -30px rgba(91, 110, 225, 0.22),
+    0 18px 50px -20px rgba(17, 17, 17, 0.12);
+}
+
+.hairline { box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.06); }
+
+/* ── Subtle ambient grain (Apple-esque "tooth") ─────────────────── */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/></svg>");
+}
+
+/* ── Marquee for proof bar ──────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track { animation: marquee 42s linear infinite; }
+
 /* Blog post body typography */
 .prose-blog {
   color: #374151;
