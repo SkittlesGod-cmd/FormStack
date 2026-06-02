@@ -18,6 +18,7 @@ const FOOTER_COLUMNS = [
     heading: "Resources",
     links: [
       { label: "Journal", href: "/blog" },
+      { label: "Methodology", href: "/methodology" },
       { label: "Security", href: "/security" },
       { label: "Contact", href: "/contact" },
     ],
@@ -25,6 +26,7 @@ const FOOTER_COLUMNS = [
   {
     heading: "Company",
     links: [
+      { label: "Manifesto", href: "/manifesto" },
       { label: "Terms", href: "/terms" },
       { label: "Privacy", href: "/privacy" },
     ],

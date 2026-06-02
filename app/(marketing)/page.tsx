@@ -60,9 +60,12 @@ export default function HomePage() {
       <Hero />
       <ProofBar />
       <ActsSection />
+      <WorkspaceSection />
       <AnatomySection />
       <PrinciplesSection />
+      <TimelineSection />
       <ForWhomSection />
+      <FaqSection />
       <FinalCTA />
     </div>
   );
@@ -775,6 +778,261 @@ function FinalCTA() {
             >
               View pricing
             </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── WORKSPACE PREVIEW ───────────────────────────────────────────────────────
+
+function WorkspaceSection() {
+  return (
+    <section className="relative isolate overflow-hidden py-28 md:py-36">
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.22]">
+        <div className="subtle-grid absolute inset-0" />
+      </div>
+      <div className="page-shell">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">Inside the workspace</p>
+          <h2 className="display-md mt-4 text-balance-tight text-gradient-ink">
+            Every formulation, every revision,<br />in one calm place.
+          </h2>
+          <p className="body-md mx-auto mt-5 max-w-xl text-gray-500">
+            Status pills tell you what&apos;s ready for review. Version history tells you what
+            changed and why. Nothing leaves your workspace blind.
+          </p>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mx-auto mt-16 max-w-[1100px]"
+        >
+          <div className="pointer-events-none absolute -inset-12 -z-10 rounded-[44px] bg-gradient-to-br from-[#dcd1ff]/35 via-transparent to-[#b9c8ff]/35 blur-3xl" />
+          <DashboardMock />
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function DashboardMock() {
+  const items = [
+    { name: "Sleep Architect Stack",   prod: "Capsule",  status: "Compliant",  score: 94, color: "emerald" as const },
+    { name: "Gut–Skin Support",         prod: "Capsule",  status: "In review",  score: 91, color: "emerald" as const },
+    { name: "Pre-Workout v3",           prod: "Powder",   status: "Drafting",   score: 72, color: "amber"   as const },
+    { name: "Adaptogen Daily",          prod: "Capsule",  status: "Compliant",  score: 88, color: "emerald" as const },
+    { name: "Liver Reset (women 40+)",  prod: "Softgel",  status: "Drafting",   score: 64, color: "amber"   as const },
+    { name: "Cognitive Edge",           prod: "Capsule",  status: "Refining",   score: 81, color: "emerald" as const },
+  ];
+  const colorMap = {
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    amber:   "border-amber-200 bg-amber-50 text-amber-700",
+  };
+
+  return (
+    <div className="cinema-card overflow-hidden">
+      {/* Window chrome */}
+      <div className="flex items-center justify-between border-b border-black/[0.05] bg-white/40 px-4 py-2.5 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <span className="size-2.5 rounded-full bg-[#ff6058]/70" />
+          <span className="size-2.5 rounded-full bg-[#ffbd2e]/70" />
+          <span className="size-2.5 rounded-full bg-[#27c93f]/70" />
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-white/60 px-3 py-1 text-[11px] text-gray-500">
+          <span className="size-1.5 rounded-full bg-brand animate-pulse" /> formlayer.co / workspace
+        </div>
+        <div className="w-12" />
+      </div>
+
+      <div className="grid grid-cols-[200px_1fr]">
+        {/* Sidebar */}
+        <aside className="border-r border-black/[0.05] bg-white/60 p-4 backdrop-blur">
+          <div className="flex items-center gap-2 px-2 pb-4">
+            <span className="relative flex size-5 items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-[#a48bff] via-[#7c8dff] to-[#5b6ee1]" />
+              <span className="absolute inset-[3px] rounded-full bg-white/85" />
+              <span className="relative size-1.5 rounded-full bg-gray-950" />
+            </span>
+            <span className="text-[12.5px] font-medium tracking-[-0.018em] text-gray-950">FormLayer</span>
+          </div>
+          <nav className="space-y-0.5">
+            {[
+              { l: "Overview",      active: false },
+              { l: "Formulations",  active: true  },
+              { l: "Research",      active: false },
+              { l: "Agents",        active: false, pro: true },
+              { l: "Billing",       active: false },
+            ].map(({ l, active, pro }) => (
+              <div key={l} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 text-[12px] ${active ? "bg-black/[0.05] text-gray-950 font-medium" : "text-gray-500"}`}>
+                <span>{l}</span>
+                {pro && <span className="rounded-full bg-brand/10 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wide text-brand">Pro</span>}
+              </div>
+            ))}
+          </nav>
+          <div className="mt-6 rounded-xl border border-black/[0.05] bg-gradient-to-br from-brand/[0.08] to-[#b88af2]/[0.05] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand">This month</p>
+            <p className="mt-1.5 text-[18px] font-semibold leading-none tracking-tight text-gray-950 tabular-nums">8 / 25</p>
+            <p className="mt-1 text-[10.5px] text-gray-500">formulations used</p>
+            <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-black/[0.05]">
+              <div className="h-full w-[32%] rounded-full bg-gradient-to-r from-brand to-[#b88af2]" />
+            </div>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">Workspace</p>
+              <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.022em] text-gray-950">Your formulations</h3>
+            </div>
+            <button className="rounded-full bg-gray-950 px-3.5 py-1.5 text-[11.5px] font-medium text-white">+ New</button>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-2.5">
+            {items.map((it) => (
+              <div key={it.name} className="rounded-xl border border-black/[0.05] bg-white/85 p-3.5 transition hover:border-brand/20 hover:shadow-[0_4px_16px_rgba(91,110,225,0.08)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[12.5px] font-semibold text-gray-950">{it.name}</p>
+                    <p className="mt-0.5 text-[10.5px] text-gray-400">{it.prod} · updated 2h ago</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9.5px] font-semibold ${colorMap[it.color]}`}>{it.status}</span>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-gray-100">
+                    <div className="h-full rounded-full bg-gradient-to-r from-brand to-[#b88af2] transition-all" style={{ width: `${it.score}%` }} />
+                  </div>
+                  <span className="w-7 text-right font-mono text-[10.5px] tabular-nums text-gray-600">{it.score}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TIMELINE / "THE BUILD" ─────────────────────────────────────────────────
+
+function TimelineSection() {
+  const steps = [
+    { t: "0:00", k: "Brief",      v: "You describe the product, the consumer, and the outcome." },
+    { t: "0:08", k: "Research",   v: "FormLayer pulls dose ranges and grades from published human RCTs." },
+    { t: "0:24", k: "Formulate",  v: "The stack composes itself, with rationale per ingredient." },
+    { t: "0:52", k: "Comply",     v: "A 100-point FDA compliance score is generated with auto-fixes." },
+    { t: "1:30", k: "Ship",       v: "Manufacturer brief and Supplement Facts panel are ready." },
+  ];
+  return (
+    <section className="relative py-28 md:py-36">
+      <div className="page-shell">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">The build</p>
+          <h2 className="display-md mt-4 text-balance-tight text-gradient-ink">
+            From idea to manufacturer in 90 seconds.
+          </h2>
+          <p className="body-md mx-auto mt-5 max-w-xl text-gray-500">
+            A typical first draft — not a marketing claim, the actual timing of the
+            five phases FormLayer runs end-to-end.
+          </p>
+        </div>
+
+        <div className="relative mx-auto mt-20 max-w-[920px]">
+          {/* The line */}
+          <div className="absolute left-[60px] top-3 bottom-3 w-px bg-gradient-to-b from-transparent via-brand/30 to-transparent md:left-1/2 md:-translate-x-px" />
+
+          <ul className="space-y-12">
+            {steps.map((s, i) => (
+              <motion.li
+                key={s.k}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -16 : 16 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className={`relative grid grid-cols-[120px_1fr] items-start gap-6 md:grid-cols-2 md:gap-12 ${i % 2 === 1 ? "md:[&>*:first-child]:order-2 md:[&>*:first-child]:text-left md:[&>*:last-child]:text-right" : "md:[&>*:first-child]:text-right"}`}
+              >
+                <div>
+                  <span className="font-mono text-[12px] text-brand">{s.t}</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-[-44px] top-1.5 size-2.5 rounded-full bg-brand ring-4 ring-white md:hidden" />
+                  <span className="absolute -left-[58px] top-1.5 hidden size-2.5 rounded-full bg-brand ring-4 ring-white md:block" />
+                  <p className="text-[18px] font-semibold tracking-[-0.018em] text-gray-950">{s.k}</p>
+                  <p className="mt-1.5 max-w-[42ch] text-[14.5px] leading-relaxed text-gray-500">{s.v}</p>
+                </div>
+              </motion.li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+
+const FAQ = [
+  { q: "Is FormLayer regulated as medical advice?", a: "No. FormLayer is a research and design tool for supplement formulators. It surfaces published clinical evidence and computes label-compliance scores, but every formulation must still be reviewed by your regulatory and legal team before manufacture or sale." },
+  { q: "Where does the clinical evidence come from?", a: "Published human randomized controlled trials, meta-analyses, and peer-reviewed systematic reviews — primarily from PubMed and indexed journals. Every ingredient recommendation traces back to a citation surfaced inside the workspace." },
+  { q: "How is the FDA compliance score computed?", a: "It's a 100-point rubric across label claims, daily-value math, allergen disclosure, structure-function language, and ingredient identity. Issues are flagged per ingredient; common violations carry one-click auto-fix suggestions you can review and accept." },
+  { q: "Can I share a formulation with a manufacturer?", a: "Yes. Every formulation produces a manufacturer-ready brief and a live read-only share link. The brief auto-updates as you revise the formulation, so the manufacturer always sees the current version — no stale PDFs." },
+  { q: "What happens to my data?", a: "Your formulations are private to your workspace by default. We don't train models on customer data, and team-shared workspaces use role-based access. See the Security page for details on encryption and tenancy." },
+  { q: "How do I get access?", a: "FormLayer is in private beta. Request access from the homepage and we get back within two business days with onboarding for you and your team." },
+] as const;
+
+function FaqSection() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <section className="relative py-28 md:py-36">
+      <div className="page-shell">
+        <div className="grid gap-14 md:grid-cols-[1fr_1.4fr]">
+          <div>
+            <p className="eyebrow">Common questions</p>
+            <h2 className="display-md mt-4 text-balance-tight text-gradient-ink">
+              What founders ask before they sign up.
+            </h2>
+            <p className="mt-5 max-w-sm text-[14.5px] leading-relaxed text-gray-500">
+              Still curious? Email us at hello@formlayer.co and a real person
+              will reply within a day.
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-3xl border border-black/[0.06] bg-white/70 backdrop-blur">
+            {FAQ.map((item, i) => {
+              const isOpen = open === i;
+              return (
+                <div key={item.q} className={i !== 0 ? "border-t border-black/[0.05]" : ""}>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen ? null : i)}
+                    className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition hover:bg-white/80"
+                  >
+                    <span className="text-[15px] font-medium tracking-[-0.01em] text-gray-950">{item.q}</span>
+                    <span className={`flex size-7 shrink-0 items-center justify-center rounded-full border border-black/[0.08] text-[14px] text-gray-500 transition-transform ${isOpen ? "rotate-45 bg-brand/[0.06] text-brand" : ""}`}>
+                      +
+                    </span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <p className="px-6 pb-6 text-[14px] leading-relaxed text-gray-600">{item.a}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
